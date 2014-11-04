@@ -7,6 +7,7 @@ import urllib
 
 from dateutil.parser import parse
 
+from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, HttpResponseNotFound
 from django.shortcuts import render, render_to_response, get_object_or_404, redirect
@@ -119,4 +120,41 @@ def log_event(request):
         event.save()
     
     return HttpResponse(json.dumps({ 'result': 'success' }), content_type='application/json')
+
+
+@staff_member_required
+def pr_home(request):
+    return render_to_response('purple_robot_home.html')
+
+
+@staff_member_required
+def pr_by_probe(request):
+    return render_to_response('purple_robot_probe.html')
+
+
+@staff_member_required
+def pr_by_user(request):
+    users = {}
+    
+    hashes = PurpleRobotReport.objects.order_by().values('user_id').distinct()
+        
+    for hash in hashes:
+        user_id = hash['user_id']
+        
+        user_dict = {}
+        
+        for report in PurpleRobotReport.objects.filter(user_id=user_id).order_by('-generated'):
+            mime_type = report.mime_type
+            
+            if (mime_type in user_dict) == False:
+            	user_dict[mime_type] = report
+        
+        users[user_id] = user_dict
+
+    c = RequestContext(request)
+    c['users'] = users
+    
+    print('Users: ' + str(users))
+
+    return render_to_response('purple_robot_user.html', c)
 

@@ -12,7 +12,9 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         tag = 'extracted_readings'
         
-        for payload in PurpleRobotPayload.objects.exclude(process_tags__contains=tag):
+        payloads = PurpleRobotPayload.objects.exclude(process_tags__contains=tag)[:250]
+        
+        for payload in payloads:
             items = json.loads(payload.payload)
 
             user_id = payload.user_id

@@ -1,0 +1,54 @@
+{% extends "purple_robot_base.html" %}
+{% block 'title' %}Purple Robot Data Portal{% endblock %}
+{% block 'content' %}
+	<div class="row">
+		<div class="col-md-12">
+			<h1>Data Export By User</h1>
+			<p class="lead">Select the desired probe data for a particular user.</p>
+		</div>
+	</div>
+	
+	<div class="row">
+		<div class="col-md-3"><strong>User Hash</strong></div>
+		<div class="col-md-9">
+			<div class="row">
+				<div class="col-md-6">
+					<strong>Probe</strong>
+				</div>
+				<div class="col-md-3">
+					<strong>Last Updated</strong>
+				</div>
+				<div class="col-md-3">
+					<strong>Actions</strong>
+				</div>
+			</div>
+		</div>
+	</div>
+	
+	{% for user_id, reports in users.items %}
+		<div class="row"  style="margin-top: 1em;">
+			<div class="col-md-3">{{ user_id }}</div>
+			<div class="col-md-9">
+				{% for type, report in reports.items %}
+					<div class="row">
+						<div class="col-md-6">
+							{{ report }}
+						</div>
+						<div class="col-md-3">
+							{{ report.generated }}
+						</div>
+						<div class="col-md-3">
+							<a href="{{ report.report_file.url }}">{{ report.mime_type }}</a>
+						</div> 	
+					</div>
+				{% endfor %}
+			</div>
+		</div>
+	{% endfor %}
+{% endblock %}
+
+{% block 'page_script' %}
+	$(document).ready(function() {
+		$("li#header_user").addClass("active");
+	});
+{% endblock %}

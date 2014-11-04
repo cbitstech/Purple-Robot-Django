@@ -29,3 +29,10 @@ class PurpleRobotReadingAdmin(admin.ModelAdmin):
     search_fields = ['probe', 'user_id', 'payload']
 
 admin.site.register(PurpleRobotReading, PurpleRobotReadingAdmin)
+
+
+class PurpleRobotReportAdmin(admin.ModelAdmin):
+    list_display = ('probe', 'user_id', 'generated', 'mime_type')
+    list_filter = ['probe', 'user_id', 'generated', 'mime_type']
+
+admin.site.register(PurpleRobotReport, PurpleRobotReportAdmin)
