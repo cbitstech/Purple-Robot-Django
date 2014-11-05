@@ -144,10 +144,10 @@ def pr_by_user(request):
         user_dict = {}
         
         for report in PurpleRobotReport.objects.filter(user_id=user_id).order_by('-generated'):
-            mime_type = report.mime_type
+            key = str(report) + '-' + report.mime_type
             
-            if (mime_type in user_dict) == False:
-            	user_dict[mime_type] = report
+            if (key in user_dict) == False:
+            	user_dict[key] = report
         
         users[user_id] = user_dict
 
