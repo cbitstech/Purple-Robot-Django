@@ -1,0 +1,23 @@
+{% extends "purple_robot_base.html" %}
+{% block 'title' %}Purple Robot Test Results{% endblock %}
+{% block 'content' %}
+	<div class="col-md-12">
+		<h1>Purple Robot Test Results</h1>
+		
+		<p>User Hash: {{ test.user_id }}</p>
+		<p>Probe: {{ test.probe }}</p>
+		
+		{% with observed=test.average_frequency %}
+			<p>Target Frequency: {{ test.frequency }} Hz</p>
+			<p>Observed Frequency: {{ observed }} Hz</p>
+			<p>Target Met: {% if observed > test.frequency %}Yes{% else %}No{% endif %}</p>
+			<p>Max Sample Gap: {{ test.max_gap_size }}</p>
+		{% endwith %}
+	</div>
+{% endblock %}
+
+{% block 'page_script' %}
+	$(document).ready(function() {
+		$("li#header_probe").addClass("active");
+	});
+{% endblock %}

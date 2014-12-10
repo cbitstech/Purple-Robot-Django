@@ -12,5 +12,7 @@ urlpatterns = patterns('',
     url(r'^home$', pr_home, name='pr_home'),
     url(r'^probes$', pr_by_probe, name='pr_by_probe'),
     url(r'^user$', pr_by_user, name='pr_by_user'),
+    url(r'^test/(?P<slug>.+)$', test_report, name='test_report'),
+    url(r'^test$', test_payload, name='test_payload'),
     url(r'^$', ingest_payload, name='ingest_payload'),
 )
