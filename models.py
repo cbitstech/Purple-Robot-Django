@@ -1,7 +1,10 @@
+import datetime
 import json
 import string
+import time
 
 from django.db import models
+from django.utils import timezone
 
 class PurpleRobotConfiguration(models.Model):
     name = models.CharField(max_length=1024)
@@ -81,6 +84,51 @@ class PurpleRobotTest(models.Model):
               max_gap = gap
               
         return max_gap
+        
+    def frequency_graph_json(self, indent=0):
+        times = json.loads(self.timestamps)
+        times.sort()
+    
+        now = time.time()
+        start = now - (24 * 60 * 60)
+        end = start + (60 * 15)
+        
+        counts = []
+        
+        count = 0
+        
+        for timestamp in times:
+            if timestamp < start:
+                pass
+            elif timestamp > now:
+                pass
+            elif timestamp > start and timestamp < end:
+                count += 1
+            else:
+                while timestamp > end:
+                    counts.append({ 'x': start, 'y': count })
+                    start = end
+                    end = start + (60 * 15)
+                    count = 0
+                    
+                count += 1
+
+        counts.append({ 'x': start, 'y': count })
+                
+        return json.dumps(counts, indent=indent)
+        
+    def last_recorded_sample(self):
+        times = json.loads(self.timestamps)
+        times.sort()
+        
+        if len(times) > 0:
+            return datetime.datetime.fromtimestamp(times[-1])
+        
+        return None
+            
+        
+
+    
         
         
     

@@ -12,7 +12,54 @@
 			<p>Observed Frequency: {{ observed }} Hz</p>
 			<p>Target Met: {% if observed > test.frequency %}Yes{% else %}No{% endif %}</p>
 			<p>Max Sample Gap: {{ test.max_gap_size }}</p>
+			<p>Last Sample Recorded: {{ test.last_recorded_sample }}</p>
 		{% endwith %}
+		
+		<div id="chart_container" style="vertical-align: top;">
+        	<div id="y_axis" style="width: 100px; height: 240px; float: left; display: inline-block;"></div>
+	        <div id="chart" style="display: inline-block;""></div>
+    	</div>    
+		<script>
+			// set up our data series with 50 random data points
+
+			// instantiate our graph!
+
+			var graph = new Rickshaw.Graph( {
+				element: document.getElementById("chart"),
+				height: 240,
+				width: 840,
+				renderer: 'line',
+				series: [
+					{
+						color: "#c05020",
+						data: {{ test.frequency_graph_json|safe }},
+						name: 'Samples per 15 minutes'
+					}
+				],
+				padding: { top: 0.25 }
+			});
+			
+			var x_axis = new Rickshaw.Graph.Axis.Time( { graph: graph } );
+
+			var y_axis = new Rickshaw.Graph.Axis.Y( {
+		        graph: graph,
+        		orientation: 'left',
+		        tickFormat: Rickshaw.Fixtures.Number.formatKMBT,
+		        element: document.getElementById('y_axis'),
+			});
+
+			var hoverDetail = new Rickshaw.Graph.HoverDetail( {
+			    graph: graph,
+			    xFormatter: function(x) 
+			    { 
+			    	var date = new Date (x * 1000);
+			    	return "" + date 
+			    },
+			    yFormatter: function(y) { return Math.floor(y) + " samples" }
+			});
+
+			graph.render();
+		</script>
 	</div>
 {% endblock %}
 

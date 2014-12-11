@@ -68,8 +68,7 @@ def test_payload(request):
     probes = {}
     timestamps = {}
     
-    if True:
-    # try:
+    try:
         json_str = request.POST['json']
         
         json_obj = json.loads(json_str)
@@ -150,8 +149,8 @@ def test_payload(request):
             result['Checksum'] = m.hexdigest()
         else:
             result['Error'] = 'Source checksum ' + json_obj['Checksum'] + ' doesn\'t match destination checksum ' + checksum_str + '.'
-    # except Exception, e:
-    #     result['Error'] = str(e)
+    except Exception, e:
+        result['Error'] = str(e)
         
     return HttpResponse(json.dumps(result), content_type='application/json')
     
@@ -221,6 +220,7 @@ def log_event(request):
 @staff_member_required
 def test_report(request, slug):
     c = RequestContext(request)
+    
     c['test'] = get_object_or_404(PurpleRobotTest, slug=slug)
     
     return render_to_response('purple_robot_test.html', c)
