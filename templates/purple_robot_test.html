@@ -2,9 +2,9 @@
 {% block 'title' %}Purple Robot Test Results{% endblock %}
 {% block 'content' %}
 	<div class="col-md-12">
-		<h1>Purple Robot Test Results</h1>
+		<h1>Purple Robot Probe Test</h1>
 		
-		<p>User Hash: {{ test.user_id }}</p>
+		<p>User Hash: <a href="{% url 'tests_by_user' test.user_id %}">{{ test.user_id }}</a></p>
 		<p>Probe: {{ test.probe }}</p>
 		
 		{% with observed=test.average_frequency %}
@@ -15,8 +15,9 @@
 			<p>Last Sample Recorded: {{ test.last_recorded_sample }}</p>
 		{% endwith %}
 		
+		<h2>Frequency Timeline (Last 24 Hours)</h2>
 		<div id="chart_container" style="vertical-align: top;">
-        	<div id="y_axis" style="width: 100px; height: 240px; float: left; display: inline-block;"></div>
+        	<div id="y_axis" style="width: 40px; height: 240px; float: left; display: inline-block;"></div>
 	        <div id="chart" style="display: inline-block;""></div>
     	</div>    
 		<script>
@@ -27,7 +28,7 @@
 			var graph = new Rickshaw.Graph( {
 				element: document.getElementById("chart"),
 				height: 240,
-				width: 840,
+				width: 920,
 				renderer: 'line',
 				series: [
 					{

@@ -1,0 +1,56 @@
+{% extends "purple_robot_base.html" %}
+{% block 'title' %}Purple Robot Test Results{% endblock %}
+{% block 'content' %}
+	<div class="col-md-12">
+		<h1>Tests: {{ user_id }}</h1>
+		
+		<table class="table table-striped">
+			<tr>
+				<th>Test Slug</th>
+				<th>Probe</th>
+				<th>Target (Hz)</th>
+				<th>Observed (Hz)</th>
+				<th>Max Sample Gap</th>
+				<th>Last Observation</th>
+				<th>Status</th>
+				<th>Active</th>
+			</tr>
+			{% for test in tests %}
+				<tr>
+					<td><a href="{% url 'test_report' test.slug %}">{{ test.slug }}</a></td>
+					<td>{{ test.probe_name }}</td>
+					<td>{{ test.frequency }}</td>
+					<td>{{ test.average_frequency }}</td>
+					<td>{{ test.max_gap_size }}</td>
+					<td>{{ test.last_recorded_sample }}</td>
+					<td>
+						{% if test.passes %}
+							<span class="text-success">Success</span>
+						{% else %}
+							<span class="text-danger">Failure</span>
+						{% endif %}
+					</td>
+					<td>
+						{% if test.active %}
+							<span class="glyphicon glyphicon-ok" aria-hidden="true"></span>
+						{% else %}
+							<span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+						{% endif %}
+					</td>
+				</tr>
+			{% endfor %}
+		</table>
+		
+		{% if success %}
+			<h3>All tests succeeded.</h3>
+		{% else %}
+			<h3>One or more tests failed.</h3>
+		{% endif %}
+	</div>
+{% endblock %}
+
+{% block 'page_script' %}
+	$(document).ready(function() {
+		$("li#header_probe").addClass("active");
+	});
+{% endblock %}

@@ -226,6 +226,21 @@ def test_report(request, slug):
     return render_to_response('purple_robot_test.html', c)
 
 @staff_member_required
+def tests_by_user(request, user_id):
+    c = RequestContext(request)
+    
+    c['tests'] = PurpleRobotTest.objects.filter(user_id=user_id)
+    c['user_id'] = user_id
+    
+    c['success'] = True
+    
+    for test in c['tests']:
+        if test.active and test.passes() == False:
+            c['success'] = False        
+    
+    return render_to_response('purple_robot_tests.html', c)
+
+@staff_member_required
 def pr_home(request):
     return render_to_response('purple_robot_home.html')
 

@@ -63,6 +63,9 @@ class PurpleRobotTest(models.Model):
         last = timestamps[-1]
         
         return len(timestamps) / (last - first)
+        
+    def passes(self):
+    	return self.average_frequency() > self.frequency
 
     def max_gap_size(self):
         timestamps = json.loads(self.timestamps)
@@ -125,7 +128,9 @@ class PurpleRobotTest(models.Model):
             return datetime.datetime.fromtimestamp(times[-1])
         
         return None
-            
+        
+    def probe_name(self):
+        return string.replace(self.probe, 'edu.northwestern.cbits.purple_robot_manager.probes.', '')    
         
 
     
