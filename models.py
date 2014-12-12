@@ -1,5 +1,7 @@
 import string
 from django.db import models
+from django.db.models.signals import pre_delete
+from django.dispatch.dispatcher import receiver
 
 class PurpleRobotConfiguration(models.Model):
     name = models.CharField(max_length=1024)
@@ -37,3 +39,7 @@ class PurpleRobotReport(models.Model):
 
     def __unicode__(self):
         return string.split(self.probe, '.')[-1]
+
+@receiver(pre_delete, sender=PurpleRobotReport)
+def purplerobotreport_delete(sender, instance, **kwargs):
+    instance.report_file.delete(False)
