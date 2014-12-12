@@ -30,9 +30,14 @@ class PurpleRobotReadingAdmin(admin.ModelAdmin):
 
 admin.site.register(PurpleRobotReading, PurpleRobotReadingAdmin)
 
-
 class PurpleRobotReportAdmin(admin.ModelAdmin):
     list_display = ('probe', 'user_id', 'generated', 'mime_type')
     list_filter = ['probe', 'user_id', 'generated', 'mime_type']
 
 admin.site.register(PurpleRobotReport, PurpleRobotReportAdmin)
+
+class PurpleRobotTestAdmin(admin.ModelAdmin):
+    list_display = ('probe', 'user_id', 'slug', 'frequency', 'active')
+    list_filter = ['probe', 'user_id', 'active']
+
+admin.site.register(PurpleRobotTest, PurpleRobotTestAdmin)
