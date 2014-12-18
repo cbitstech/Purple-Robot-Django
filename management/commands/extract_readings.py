@@ -1,4 +1,4 @@
-from datetime import datetime
+import datetime
 import json
 import pytz
 import urllib
@@ -22,7 +22,7 @@ class Command(BaseCommand):
             for item in items:
                 reading = PurpleRobotReading(probe=item['PROBE'], user_id=payload.user_id)
                 reading.payload = json.dumps(item, indent=2)
-                reading.logged = datetime.utcfromtimestamp(item['TIMESTAMP']).replace(tzinfo=pytz.utc)
+                reading.logged = datetime.datetime.utcfromtimestamp(item['TIMESTAMP']).replace(tzinfo=pytz.utc)
                     
                 reading.save()
                 

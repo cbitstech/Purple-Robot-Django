@@ -14,6 +14,6 @@ urlpatterns = patterns('',
     url(r'^user$', pr_by_user, name='pr_by_user'),
     url(r'^test/(?P<slug>.+)$', test_report, name='test_report'),
     url(r'^tests/(?P<user_id>.+)$', tests_by_user, name='tests_by_user'),
-    url(r'^test$', test_payload, name='test_payload'),
+#    url(r'^test$', test_payload, name='test_payload'),
     url(r'^$', ingest_payload, name='ingest_payload'),
 )

@@ -15,29 +15,37 @@
 			<p>Last Sample Recorded: {{ test.last_recorded_sample }}</p>
 		{% endwith %}
 		
-		<h2>Frequency Timeline (Last 24 Hours)</h2>
 		<div id="chart_container" style="vertical-align: top;">
-        	<div id="y_axis" style="width: 40px; height: 240px; float: left; display: inline-block;"></div>
+        	<div id="y_axis" style="width: 40px; height: 120px; float: left; display: inline-block;"></div>
 	        <div id="chart" style="display: inline-block;""></div>
     	</div>    
-		<script>
-			// set up our data series with 50 random data points
 
-			// instantiate our graph!
+		<div id="battery_container" style="vertical-align: top;">
+        	<div id="battery_y_axis" style="width: 40px; height: 120px; float: left; display: inline-block;"></div>
+	        <div id="battery_chart" style="display: inline-block;""></div>
+    	</div>    
+
+		<div id="pending_chart_container" style="vertical-align: top;">
+        	<div id="pending_y_axis" style="width: 40px; height: 12px; float: left; display: inline-block;"></div>
+	        <div id="pending_chart" style="display: inline-block;""></div>
+    	</div>    
+
+		<script>
+			// Target
 
 			var graph = new Rickshaw.Graph( {
 				element: document.getElementById("chart"),
-				height: 240,
+				height: 120,
 				width: 920,
-				renderer: 'line',
+				renderer: 'scatterplot',
 				series: [
 					{
-						color: "#c05020",
+						color: "#0D47A1",
 						data: {{ test.frequency_graph_json|safe }},
 						name: 'Samples per 15 minutes'
 					}
 				],
-				padding: { top: 0.25 }
+				padding: { top: 0.25, bottom: 0.25 }
 			});
 			
 			var x_axis = new Rickshaw.Graph.Axis.Time( { graph: graph } );
@@ -60,6 +68,83 @@
 			});
 
 			graph.render();
+
+			// Battery
+
+			graph = new Rickshaw.Graph( {
+				element: document.getElementById("battery_chart"),
+				height: 120,
+				width: 920,
+				renderer: 'scatterplot',
+				series: [
+					{
+						color: "#33691E",
+						data: {{ test.battery_graph_json|safe }},
+						name: 'Battery level'
+					}
+				],
+				padding: { top: 0.25 }
+			});
+			
+			x_axis = new Rickshaw.Graph.Axis.Time( { graph: graph } );
+
+			y_axis = new Rickshaw.Graph.Axis.Y( {
+		        graph: graph,
+        		orientation: 'left',
+		        tickFormat: Rickshaw.Fixtures.Number.formatKMBT,
+		        element: document.getElementById('battery_y_axis'),
+			});
+
+			hoverDetail = new Rickshaw.Graph.HoverDetail( {
+			    graph: graph,
+			    xFormatter: function(x) 
+			    { 
+			    	var date = new Date (x * 1000);
+			    	return "" + date 
+			    },
+			    yFormatter: function(y) { return Math.floor(y) + "%" }
+			});
+
+			graph.render();
+
+			// Pending files
+
+			graph = new Rickshaw.Graph( {
+				element: document.getElementById("pending_chart"),
+				height: 120,
+				width: 920,
+				renderer: 'scatterplot',
+				series: [
+					{
+						color: "#B71C1C",
+						data: {{ test.pending_files_graph_json|safe }},
+						name: 'Pending files'
+					}
+				],
+				padding: { top: 0.25 }
+			});
+			
+			x_axis = new Rickshaw.Graph.Axis.Time( { graph: graph } );
+
+			y_axis = new Rickshaw.Graph.Axis.Y( {
+		        graph: graph,
+        		orientation: 'left',
+		        tickFormat: Rickshaw.Fixtures.Number.formatKMBT,
+		        element: document.getElementById('pending_y_axis'),
+			});
+
+			hoverDetail = new Rickshaw.Graph.HoverDetail( {
+			    graph: graph,
+			    xFormatter: function(x) 
+			    { 
+			    	var date = new Date (x * 1000);
+			    	return "" + date 
+			    },
+			    yFormatter: function(y) { return Math.floor(y) + " file(s) awaiting transmission" }
+			});
+
+			graph.render();
+
 		</script>
 	</div>
 {% endblock %}
