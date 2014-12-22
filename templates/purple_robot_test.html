@@ -64,7 +64,7 @@
 			    	var date = new Date (x * 1000);
 			    	return "" + date 
 			    },
-			    yFormatter: function(y) { return Math.floor(y) + " samples" }
+			    yFormatter: function(y) { return Math.floor(y) + " samples (" + (y / (15 * 60)) + " Hz)" }
 			});
 
 			graph.render();

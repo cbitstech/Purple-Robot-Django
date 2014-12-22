@@ -37,7 +37,8 @@ class PurpleRobotReportAdmin(admin.ModelAdmin):
 admin.site.register(PurpleRobotReport, PurpleRobotReportAdmin)
 
 class PurpleRobotTestAdmin(admin.ModelAdmin):
-    list_display = ('probe', 'user_id', 'slug', 'frequency', 'active')
-    list_filter = ['probe', 'user_id', 'active']
-
+    list_display = ('probe', 'user_id', 'slug', 'frequency', 'last_updated', 'active')
+    list_filter = ['probe', 'user_id', 'last_updated', 'active']
+    exclude = ('report',)
+    
 admin.site.register(PurpleRobotTest, PurpleRobotTestAdmin)

@@ -1,4 +1,5 @@
 import datetime
+import gc
 import json
 import string
 import time
@@ -57,12 +58,17 @@ class PurpleRobotTest(models.Model):
     frequency = models.FloatField(default=1.0)
     report = models.TextField(default='{}')
     
+    last_updated = models.DateTimeField()
+    
+    def updated_ago(self):
+        delta = timezone.now() - self.last_updated
+        
+        return delta.total_seconds()
+    
     def update(self, days=1):
         report = json.loads(self.report)
         
         start = time.time() - (days * 24 * 60 * 60)
-        
-        # battery
         
         last_battery = 0
         
@@ -76,7 +82,7 @@ class PurpleRobotTest(models.Model):
         
         battery_probe = 'edu.northwestern.cbits.purple_robot_manager.probes.builtin.BatteryProbe'
         
-        battery_readings = PurpleRobotReading.objects.filter(pk__gte=last_battery, probe=battery_probe, user_id=self.user_id).order_by('pk')
+        battery_readings = PurpleRobotReading.objects.filter(pk__gte=last_battery, probe=battery_probe, user_id=self.user_id).order_by('pk')[:250]
         
         for battery_reading in battery_readings:
             payload = json.loads(battery_reading.payload)
@@ -92,9 +98,9 @@ class PurpleRobotTest(models.Model):
         
         report['battery'] = batteries
         report['last_battery'] = last_battery
+        
+        gc.collect()
             
-        # remaining files
-
         last_health = 0
         
         if 'last_health' in report:
@@ -107,7 +113,7 @@ class PurpleRobotTest(models.Model):
         
         health_probe = 'edu.northwestern.cbits.purple_robot_manager.probes.builtin.RobotHealthProbe'
         
-        health_readings = PurpleRobotReading.objects.filter(pk__gte=last_health, probe=health_probe, user_id=self.user_id).order_by('pk')
+        health_readings = PurpleRobotReading.objects.filter(pk__gte=last_health, probe=health_probe, user_id=self.user_id).order_by('pk')[:250]
         
         for health_reading in health_readings:
             payload = json.loads(health_reading.payload)
@@ -124,45 +130,86 @@ class PurpleRobotTest(models.Model):
         report['pending_files'] = pending_files
         report['last_health'] = last_health
         
-        # target probe
-
-        last_target = 0
+        gc.collect()
         
-        if 'last_target' in report:
-            last_target = report['last_target']
-
         if ('target' in report) == False:
             report['target'] = []
+
+        now = time.time()
+        start = now - (days * 24 * 60 * 60)
+        end = start + (60 * 15)
             
-        timestamps = report['target']
-            
-        target_readings = PurpleRobotReading.objects.filter(pk__gte=last_target, probe=self.probe, user_id=self.user_id).order_by('pk')
+        timestamps = []
         
-        for reading in target_readings:
-            payload = json.loads(reading.payload)
+        start_date = datetime.datetime.now() - datetime.timedelta(days)
             
-            if 'EVENT_TIMESTAMP' in payload:
-                for ts in payload['EVENT_TIMESTAMP']:
-                    timestamps.append(ts)
-            else:
-                    timestamps.append(payload['TIMESTAMP'])
-                    
-            last_target = reading.pk
-                    
-        timestamps = [t for t in timestamps if t >= start]
+        target_readings = PurpleRobotReading.objects.filter(probe=self.probe, user_id=self.user_id, logged__gte=start_date)
         
+        total_readings = target_readings.count()
+        start_index = 0
+        
+        while start_index < total_readings:
+            end_index = start_index + 100
+            
+            for reading in target_readings[start_index:end_index]:
+                payload = json.loads(reading.payload)
+                
+                if 'EVENT_TIMESTAMP' in payload:
+                    for ts in payload['EVENT_TIMESTAMP']:
+                        if ts > 1000000000000:
+                            ts = ts / 1000
+                    
+                        if ts > start:
+                            timestamps.append(ts)
+                else:
+                    ts = payload['TIMESTAMP']
+                    
+                    if ts > start:
+                        timestamps.append(ts)
+                        
+            start_index = end_index
+                    
         timestamps.sort()
         
-        report['target'] = timestamps
-        report['last_target'] = last_target
+        counts = [ [start, None] ]
+        
+        count = 0
+        
+        for timestamp in timestamps:
+            if timestamp < start:
+                pass
+            elif timestamp > now:
+                pass
+            elif timestamp > start and timestamp < end:
+                count += 1
+            else:
+                while timestamp > end:
+                    counts.append([start, count])
+                    start = end
+                    end = start + (60 * 15)
+                    count = 0
+                    
+                count += 1
+
+        counts.append([start, count])
+        counts.append([now, None])
+        
+        report['target'] = counts
         
         self.report = json.dumps(report, indent=1)
+        
+        self.last_updated = datetime.datetime.now()
         self.save()
     
     def average_frequency(self):
         report = json.loads(self.report)
         
-        timestamps = report['target']
+        readings = report['target']
+        
+        timestamps = []
+        
+        for reading in readings:
+            timestamps.append(reading[0])
         
         if len(timestamps) <= 1:
             return 0
@@ -180,7 +227,12 @@ class PurpleRobotTest(models.Model):
     def max_gap_size(self):
         report = json.loads(self.report)
         
-        timestamps = report['target']
+        readings = report['target']
+        
+        timestamps = []
+        
+        for reading in readings:
+            timestamps.append(reading[0])
         
         if len(timestamps) <= 1:
             return 0
@@ -202,35 +254,18 @@ class PurpleRobotTest(models.Model):
         
     def frequency_graph_json(self, indent=0):
         report = json.loads(self.report)
-    
-        now = time.time()
-        start = now - (24 * 60 * 60)
-        end = start + (60 * 15)
         
-        counts = [{ 'x': start, 'y': None }]
+        output = []
         
-        count = 0
+        timestamps = report['target']
         
-        for timestamp in report['target']:
-            if timestamp < start:
-                pass
-            elif timestamp > now:
-                pass
-            elif timestamp > start and timestamp < end:
-                count += 1
-            else:
-                while timestamp > end:
-                    counts.append({ 'x': start, 'y': count })
-                    start = end
-                    end = start + (60 * 15)
-                    count = 0
-                    
-                count += 1
-
-        counts.append({ 'x': start, 'y': count })
-        counts.append({ 'x': now, 'y': None})
+        for timestamp in timestamps:
+             if len(timestamp) > 1:
+                output.append({ 'x': timestamp[0], 'y': timestamp[1] })
+             else:
+                output.append({ 'x': timestamp[0], 'y': None })
                 
-        return json.dumps(counts, indent=indent)
+        return json.dumps(output, indent=indent)
 
     def battery_graph_json(self, indent=0):
         report = json.loads(self.report)
@@ -281,11 +316,15 @@ class PurpleRobotTest(models.Model):
     def last_recorded_sample(self):
         report = json.loads(self.report)
         
-        if ('target' in report) == False:
-            report['target'] = []
+        readings = report['target']
         
-        if len(report['target']) > 0:
-            return datetime.datetime.fromtimestamp(report['target'][-1])
+        timestamps = []
+        
+        for reading in readings:
+            timestamps.append(reading[0])
+        
+        if len(timestamps) > 0:
+            return datetime.datetime.fromtimestamp(timestamps[-1])
         
         return None
         

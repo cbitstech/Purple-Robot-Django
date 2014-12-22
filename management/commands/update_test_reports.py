@@ -6,5 +6,5 @@ REPORT_DAYS = 2
 
 class Command(BaseCommand):
     def handle(self, *args, **options):
-        for test in PurpleRobotTest.objects.all():
+        for test in PurpleRobotTest.objects.all().order_by('last_updated')[:1]:
             test.update(days=REPORT_DAYS)

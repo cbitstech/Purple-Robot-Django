@@ -12,6 +12,7 @@
 				<th>Observed (Hz)</th>
 				<th>Max Sample Gap</th>
 				<th>Last Observation</th>
+				<th>Updated</th>
 				<th>Status</th>
 				<th>Active</th>
 			</tr>
@@ -23,6 +24,7 @@
 					<td>{{ test.average_frequency }}</td>
 					<td>{{ test.max_gap_size }}</td>
 					<td>{{ test.last_recorded_sample }}</td>
+					<td>{{ test.updated_ago|floatformat:0 }} sec. ago</td>
 					<td>
 						{% if test.passes %}
 							<span class="text-success">Success</span>
