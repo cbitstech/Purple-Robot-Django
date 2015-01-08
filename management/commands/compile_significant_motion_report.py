@@ -1,4 +1,5 @@
 from datetime import datetime
+import gzip
 import json
 import pytz
 import tempfile
@@ -26,8 +27,9 @@ class Command(BaseCommand):
             count = payloads.count()
             if count > 0:
                 temp_file = tempfile.TemporaryFile()
+                gzf = gzip.GzipFile(mode='wb', fileobj=temp_file)
                 
-                temp_file.write('User ID\tTimestamp\n')
+                gzf.write('User ID\tTimestamp\n')
                 
                 index = 0
                 
@@ -40,15 +42,18 @@ class Command(BaseCommand):
                     for payload in payloads[index:end]:
                         reading_json = json.loads(payload.payload)
                             
-                        temp_file.write(hash + '\t' + str(reading_json['TIMESTAMP']) + '\n')
+                        gzf.write(hash + '\t' + str(reading_json['TIMESTAMP']) + '\n')
                             
                     index += 100
+                    
+                gzf.flush()
+                gzf.close()
                 
                 temp_file.seek(0)
                         
-                report = PurpleRobotReport(generated=timezone.now(), mime_type='text/plain', probe=PROBE_NAME, user_id=hash)
+                report = PurpleRobotReport(generated=timezone.now(), mime_type='application/x-gzip', probe=PROBE_NAME, user_id=hash)
                 report.save()
-                report.report_file.save(hash + '-significant-motion.txt', File(temp_file))
+                report.report_file.save(hash + '-significant-motion.txt.gz', File(temp_file))
                 report.save()
                 
                 print('Wrote ' + hash + '-significant-motion.txt')

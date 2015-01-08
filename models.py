@@ -70,6 +70,8 @@ class PurpleRobotTest(models.Model):
         
         start = time.time() - (days * 24 * 60 * 60)
         
+        original_start = start
+        
         last_battery = 0
         
         if 'last_battery' in report:
@@ -138,7 +140,7 @@ class PurpleRobotTest(models.Model):
         now = time.time()
         start = now - (days * 24 * 60 * 60)
         end = start + (60 * 15)
-            
+        
         timestamps = []
         
         start_date = datetime.datetime.now() - datetime.timedelta(days)
@@ -193,6 +195,9 @@ class PurpleRobotTest(models.Model):
 
         counts.append([start, count])
         counts.append([now, None])
+
+        counts = [p for p in counts if p[0] >= original_start]
+        counts.sort(key=lambda reading: reading[0])
         
         report['target'] = counts
         

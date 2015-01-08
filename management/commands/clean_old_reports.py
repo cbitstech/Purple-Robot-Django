@@ -17,6 +17,6 @@ PROBE_NAME = 'edu.northwestern.cbits.purple_robot_manager.probes.builtin.Signifi
 class Command(BaseCommand):
     def handle(self, *args, **options):
         now = timezone.now()
-        start = now - datetime.timedelta(5)
+        start = now - datetime.timedelta(2)
         
         PurpleRobotReport.objects.filter(generated__lte=start).delete()

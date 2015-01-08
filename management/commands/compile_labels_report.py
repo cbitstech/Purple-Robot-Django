@@ -1,4 +1,5 @@
 from datetime import datetime
+import gzip
 import json
 import pytz
 import tempfile
@@ -30,8 +31,9 @@ class Command(BaseCommand):
 
                 if count > 0:
                     temp_file = tempfile.TemporaryFile()
-                
-                    temp_file.write('User ID\tTimestamp\tValue\n')
+                    gzf = gzip.GzipFile(mode='wb', fileobj=temp_file)
+
+                    gzf.write('User ID\tTimestamp\tValue\n')
                 
                     index = 0
                 
@@ -44,15 +46,18 @@ class Command(BaseCommand):
                         for payload in payloads[index:end]:
                             reading_json = json.loads(payload.payload)
 
-                            temp_file.write(hash + '\t' + str(reading_json['TIMESTAMP']) + '\t' + reading_json['FEATURE_VALUE'] + '\n')
+                            gzf.write(hash + '\t' + str(reading_json['TIMESTAMP']) + '\t' + reading_json['FEATURE_VALUE'] + '\n')
                             
                         index += 100
                 
+                    gzf.flush()
+                    gzf.close()
+                
                     temp_file.seek(0)
                         
-                    report = PurpleRobotReport(generated=timezone.now(), mime_type='text/plain', probe=slug_label, user_id=hash)
+                    report = PurpleRobotReport(generated=timezone.now(), mime_type='application/x-gzip', probe=slug_label, user_id=hash)
                     report.save()
-                    report.report_file.save(hash + '-' + slug_label + '.txt', File(temp_file))
+                    report.report_file.save(hash + '-' + slug_label + '.txt.gz', File(temp_file))
                     report.save()
                 
                     print('Wrote ' + hash + '-' + slug_label + '.txt')
