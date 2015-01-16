@@ -241,6 +241,21 @@ def tests_by_user(request, user_id):
     return render_to_response('purple_robot_tests.html', c)
 
 @staff_member_required
+def tests_all(request):
+    c = RequestContext(request)
+    
+    c['tests'] = PurpleRobotTest.objects.order_by('-last_updated')
+    c['user_id'] = 'All'
+    
+    c['success'] = True
+    
+    for test in c['tests']:
+        if test.active and test.passes() == False:
+            c['success'] = False        
+    
+    return render_to_response('purple_robot_tests.html', c)
+
+@staff_member_required
 def pr_home(request):
     return render_to_response('purple_robot_home.html')
 

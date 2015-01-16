@@ -25,10 +25,25 @@ class PurpleRobotPayload(models.Model):
 
 class PurpleRobotEvent(models.Model):
     event = models.CharField(max_length=1024)
+    name = models.CharField(max_length=1024, null=True, blank=True)
     logged = models.DateTimeField()
     user_id = models.CharField(max_length=1024)
 
     payload = models.TextField(max_length=(1024 * 1024 * 8), null=True, blank=True)
+    
+    def event_name(self):
+        if self.name != None:
+            return self.name
+            
+        if self.event == 'java_exception':
+            payload = json.loads(self.payload)
+            
+            tokens = payload['content_object']['stacktrace'].split(':')
+            
+            self.name = tokens[0]
+            self.save()
+            
+        return self.name
 
 class PurpleRobotReading(models.Model):
     probe = models.CharField(max_length=1024, null=True, blank=True)
@@ -68,23 +83,17 @@ class PurpleRobotTest(models.Model):
     def update(self, days=1):
         report = json.loads(self.report)
         
-        start = time.time() - (days * 24 * 60 * 60)
+        report_end = time.time()
+        report_start = report_end - (days * 24 * 60 * 60)
         
-        original_start = start
+        date_start = datetime.datetime.utcfromtimestamp(report_start)
+        date_end = datetime.datetime.utcfromtimestamp(report_end)
         
-        last_battery = 0
-        
-        if 'last_battery' in report:
-            last_battery = report['last_battery']
-
-        if ('battery' in report) == False:
-            report['battery'] = []
-            
-        batteries = report['battery']
+        batteries = []
         
         battery_probe = 'edu.northwestern.cbits.purple_robot_manager.probes.builtin.BatteryProbe'
         
-        battery_readings = PurpleRobotReading.objects.filter(pk__gte=last_battery, probe=battery_probe, user_id=self.user_id).order_by('pk')[:250]
+        battery_readings = PurpleRobotReading.objects.filter(logged__gte=date_start, logged__lte=date_end, probe=battery_probe, user_id=self.user_id).order_by('logged')
         
         for battery_reading in battery_readings:
             payload = json.loads(battery_reading.payload)
@@ -92,30 +101,21 @@ class PurpleRobotTest(models.Model):
             reading = [ payload['TIMESTAMP'], payload['level'] ]
             
             batteries.append(reading)
-            
-            last_battery = battery_reading.pk
 
-        batteries = [b for b in batteries if b[0] >= start]
+        batteries = [b for b in batteries if (b[0] >= report_start and b[0] <= report_end)]
+        batteries.append([report_start, 0])
+        batteries.append([report_end, 0])
         batteries.sort(key=lambda reading: reading[0])
         
         report['battery'] = batteries
-        report['last_battery'] = last_battery
         
-        gc.collect()
+        # gc.collect()
             
-        last_health = 0
-        
-        if 'last_health' in report:
-            last_health = report['last_health']
-
-        if ('pending_files' in report) == False:
-            report['pending_files'] = []
-            
-        pending_files = report['pending_files']
+        pending_files = []
         
         health_probe = 'edu.northwestern.cbits.purple_robot_manager.probes.builtin.RobotHealthProbe'
         
-        health_readings = PurpleRobotReading.objects.filter(pk__gte=last_health, probe=health_probe, user_id=self.user_id).order_by('pk')[:250]
+        health_readings = PurpleRobotReading.objects.filter(logged__gte=date_start, logged__lte=date_end, probe=health_probe, user_id=self.user_id).order_by('logged')
         
         for health_reading in health_readings:
             payload = json.loads(health_reading.payload)
@@ -123,29 +123,22 @@ class PurpleRobotTest(models.Model):
             reading = [ payload['TIMESTAMP'], payload['PENDING_COUNT'], payload['ACTIVE_RUNTIME'] ]
             
             pending_files.append(reading)
-            
-            last_health = health_reading.pk
 
-        pending_files = [p for p in pending_files if p[0] >= start]
+        pending_files = [p for p in pending_files if (p[0] >= report_start and p[0] <= report_end)]
+        pending_files.append([report_start, 0, 0])
+        pending_files.append([report_end, 0, 0])
         pending_files.sort(key=lambda reading: reading[0])
             
         report['pending_files'] = pending_files
-        report['last_health'] = last_health
         
-        gc.collect()
+        # gc.collect()
         
         if ('target' in report) == False:
             report['target'] = []
 
-        now = time.time()
-        start = now - (days * 24 * 60 * 60)
-        end = start + (60 * 15)
-        
         timestamps = []
-        
-        start_date = datetime.datetime.now() - datetime.timedelta(days)
             
-        target_readings = PurpleRobotReading.objects.filter(probe=self.probe, user_id=self.user_id, logged__gte=start_date)
+        target_readings = PurpleRobotReading.objects.filter(probe=self.probe, user_id=self.user_id, logged__gte=date_start).order_by('logged')
         
         total_readings = target_readings.count()
         start_index = 0
@@ -157,32 +150,41 @@ class PurpleRobotTest(models.Model):
                 payload = json.loads(reading.payload)
                 
                 if 'EVENT_TIMESTAMP' in payload:
+                    sensor_time = payload['TIMESTAMP']
+                
                     for ts in payload['EVENT_TIMESTAMP']:
+#                        timestamps.append(sensor_time)
+                        timestamps.append(ts)
                         if ts > 1000000000000:
                             ts = ts / 1000
-                    
-                        if ts > start:
+                   
+                        if ts >= report_start and ts <= report_end:
                             timestamps.append(ts)
+#                       else:
+#                           print('THROWING OUT ' + str(ts) + ' < ' + str(original_start) + ' PK: ' + str(reading.pk)) 
                 else:
                     ts = payload['TIMESTAMP']
                     
-                    if ts > start:
+                    if ts >= report_start and ts <= report_end:
                         timestamps.append(ts)
                         
             start_index = end_index
                     
         timestamps.sort()
+
+        start = report_start
+        end = start + (60 * 15)
         
-        counts = [ [start, None] ]
+        counts = [ [start, 0] ]
         
         count = 0
         
         for timestamp in timestamps:
-            if timestamp < start:
+            if timestamp < report_start:
                 pass
-            elif timestamp > now:
+            elif timestamp > report_end:
                 pass
-            elif timestamp > start and timestamp < end:
+            elif timestamp >= start and timestamp < end:
                 count += 1
             else:
                 while timestamp > end:
@@ -194,10 +196,10 @@ class PurpleRobotTest(models.Model):
                 count += 1
 
         counts.append([start, count])
-        counts.append([now, None])
+        counts.append([report_end, None])
 
-        counts = [p for p in counts if p[0] >= original_start]
-        counts.sort(key=lambda reading: reading[0])
+#        counts = [p for p in counts if p[0] >= original_start]
+#        counts.sort(key=lambda reading: reading[0])
         
         report['target'] = counts
         
@@ -211,20 +213,16 @@ class PurpleRobotTest(models.Model):
         
         readings = report['target']
         
-        timestamps = []
+        count = 0.0
         
         for reading in readings:
-            timestamps.append(reading[0])
+            if reading[1] != None:
+                count += reading[1]
         
-        if len(timestamps) <= 1:
-            return 0
+        first = float(readings[0][0])
+        last = float(readings[-1][0])
         
-        timestamps.sort()
-        
-        first = timestamps[0]
-        last = timestamps[-1]
-        
-        return len(timestamps) / (last - first)
+        return float(count / (last - first))
         
     def passes(self):
         return self.average_frequency() > self.frequency
