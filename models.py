@@ -18,16 +18,16 @@ class PurpleRobotConfiguration(models.Model):
 class PurpleRobotPayload(models.Model):
     added = models.DateTimeField(auto_now_add=True)
     payload = models.TextField(max_length=8388608)
-    process_tags = models.CharField(max_length=1024, null=True, blank=True)
-    user_id = models.CharField(max_length=1024)
+    process_tags = models.CharField(max_length=1024, null=True, blank=True, db_index=True)
+    user_id = models.CharField(max_length=1024, db_index=True)
 
     errors = models.TextField(max_length=65536, null=True, blank=True)
 
 class PurpleRobotEvent(models.Model):
     event = models.CharField(max_length=1024)
-    name = models.CharField(max_length=1024, null=True, blank=True)
+    name = models.CharField(max_length=1024, null=True, blank=True, db_index=True)
     logged = models.DateTimeField()
-    user_id = models.CharField(max_length=1024)
+    user_id = models.CharField(max_length=1024, db_index=True)
 
     payload = models.TextField(max_length=(1024 * 1024 * 8), null=True, blank=True)
     
@@ -46,8 +46,8 @@ class PurpleRobotEvent(models.Model):
         return self.name
 
 class PurpleRobotReading(models.Model):
-    probe = models.CharField(max_length=1024, null=True, blank=True)
-    user_id = models.CharField(max_length=1024)
+    probe = models.CharField(max_length=1024, null=True, blank=True, db_index=True)
+    user_id = models.CharField(max_length=1024, db_index=True)
     payload = models.TextField(max_length=8388608)
     logged = models.DateTimeField()
 
