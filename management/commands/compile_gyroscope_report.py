@@ -1,4 +1,4 @@
-from datetime import datetime
+import datetime
 import gzip
 import json
 import pytz
@@ -11,25 +11,28 @@ from django.core.files.base import ContentFile
 from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 
+from purple_robot.settings import REPORT_DEVICES
 from purple_robot_app.models import *
 
 PROBE_NAME = 'edu.northwestern.cbits.purple_robot_manager.probes.builtin.GyroscopeProbe'
 
 class Command(BaseCommand):
     def handle(self, *args, **options):
-        hashes = PurpleRobotPayload.objects.order_by().values('user_id').distinct()
+        hashes = REPORT_DEVICES # PurpleRobotPayload.objects.order_by().values('user_id').distinct()
+        
+        start = datetime.datetime.now() - datetime.timedelta(days=21)
         
         for hash in hashes:
-            hash = hash['user_id']
+            # hash = hash['user_id']
 
-            payloads = PurpleRobotReading.objects.filter(user_id=hash, probe=PROBE_NAME).order_by('logged')
+            payloads = PurpleRobotReading.objects.filter(user_id=hash, probe=PROBE_NAME, logged__gte=start).order_by('logged')
             
             count = payloads.count()
             if count > 0:
                 temp_file = tempfile.TemporaryFile()
                 gzf = gzip.GzipFile(mode='wb', fileobj=temp_file)
                 
-                gzf.write('User ID\tTimestamp\tX\tY\tZ\n')
+                gzf.write('User ID\tSensor Timestamp\tCPU Timestamp\tX\tY\tZ\n')
                 
                 index = 0
                 
@@ -42,13 +45,25 @@ class Command(BaseCommand):
                     for payload in payloads[index:end]:
                         reading_json = json.loads(payload.payload)
                         
+                        ss = []
                         ts = []
                         xs = []
                         ys = []
                         zs = []
                         
+                        has_sensor = False
+                        
+                        if 'SENSOR_TIMESTAMP' in reading_json:
+                            has_sensor = True
+                            
+                            for s in reading_json['SENSOR_TIMESTAMP']:
+                                ss.append(s)
+
                         for t in reading_json['EVENT_TIMESTAMP']:
                             ts.append(t)
+                            
+                            if has_sensor == False:
+                                ss.append(-1)
     
                         for x in reading_json['X']:
                             xs.append(x)
@@ -64,8 +79,9 @@ class Command(BaseCommand):
                             y = ys[i]
                             z = zs[i]
                             t = ts[i]
+                            s = ss[i]
                             
-                            gzf.write(hash + '\t' + str(t) + '\t' + str(x) + '\t' + str(y) + '\t' + str(z) + '\n')
+                            gzf.write(hash + '\t' + str(s) + '\t' + str(t) + '\t' + str(x) + '\t' + str(y) + '\t' + str(z) + '\n')
                             
                     index += 100
 

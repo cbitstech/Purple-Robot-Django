@@ -50,6 +50,7 @@ class PurpleRobotReading(models.Model):
     user_id = models.CharField(max_length=1024, db_index=True)
     payload = models.TextField(max_length=8388608)
     logged = models.DateTimeField()
+    guid = models.CharField(max_length=1024, db_index=True, null=True, blank=True)
 
 class PurpleRobotReport(models.Model):
     probe = models.CharField(max_length=1024, null=True, blank=True)

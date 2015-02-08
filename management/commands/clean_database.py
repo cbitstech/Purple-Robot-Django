@@ -12,7 +12,7 @@ from django.utils import timezone
 
 from purple_robot_app.models import *
 
-DAYS_KEPT = 31
+DAYS_KEPT = 21
 
 class Command(BaseCommand):
     def handle(self, *args, **options):
