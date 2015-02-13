@@ -20,8 +20,8 @@
 	        <div id="chart" style="display: inline-block;""></div>
     	</div>    
 
-		<div id="zoom_container" style="vertical-align: top;">
-        	<div id="zoom_y_axis" style="width: 40px; height: 120px; float: left; display: inline-block;"></div>
+		<div id="zoom_container" style="vertical-align: top; display: none;">
+        	<div id="zoom_y_axis" style="width: 40px; height: 240px; float: left; display: inline-block;"></div>
 	        <div id="zoom_chart" style="display: inline-block;""></div>
     	</div>    
 
@@ -83,19 +83,49 @@
 			    yFormatter: function(y) { return Math.floor(y) + " samples (" + (y / (15 * 60)) + " Hz)" }
 			});
 			
+			$("#zoom_container").hide();
+			
 			$("#chart").click(function()
 			{
-				console.log("FETCH CHART FOR " + selectedDate);
+				$("#zoom_container").hide();
 				
 				$("#zoom_chart").empty();
 				$("#zoom_y_axis").empty();
 				
 				$.get("{% url 'test_details_json' test.slug %}?timestamp=" + selectedDate.format("X"), function(data)
 				{
-					console.log(JSON.stringify(data));
+					$("#zoom_container").show();
+/*					var min = 0;
+					var max = 0;
+					
+					for (var j = 0; j < data.length; j++)
+					{
+						var series = data[j];
+						
+						for (i = 0; i < series.data.length; i++) 
+						{
+							console.log("Y: " + series.data[j].y);
+							
+							min = Math.min(min, series.data[j].y);
+							max = Math.max(max, series.data[j].y);
+						}
+					}
+					
+					console.log('SCALE: ' + min + " -> " + max);
+					
+					var logScale = d3.scale.log().domain([min, max]);
+
+					console.log('SCALE: ' + logScale);
+*/
+					for (var j = 0; j < data.length; j++)
+					{
+						var series = data[j];
+//						series.scale = logScale;
+					}
+				
 					var zoom = new Rickshaw.Graph( {
 						element: document.getElementById("zoom_chart"),
-						height: 120,
+						height: 240,
 						width: 920,
 						renderer: 'scatterplot',
 						series: data,
@@ -109,6 +139,7 @@
         				orientation: 'left',
 		    		    tickFormat: Rickshaw.Fixtures.Number.formatKMBT,
 		        		element: document.getElementById('zoom_y_axis'),
+//		        		scale: logScale
 					});
 
 					var hoverDetail = new Rickshaw.Graph.HoverDetail( {
@@ -118,7 +149,7 @@
 			    			var date = new Date (x * 1000);
 				    		return "" + date 
 					    },
-					    yFormatter: function(y) { return Math.floor(y) + " samples (" + (y / (15 * 60)) + " Hz)" }
+					    yFormatter: function(y) { return Math.floor(y) + " samples (" + y + " Hz)" }
 					});
 
 					zoom.render();

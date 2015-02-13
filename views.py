@@ -299,8 +299,8 @@ def test_details_json(request, slug):
     
     test = PurpleRobotTest.objects.get(slug=slug) # prove, user_id
     
-    cpu_frequency = { 'color': '#FF5722', 'data': [], 'name': 'CPU Timestamps'}
-    sensor_frequency = { 'color': '#9E9E9E', 'data': [], 'name': 'Sensor Timestamps'}
+    cpu_frequency = { 'color': 'rgba(0,0,128,0.25)', 'data': [], 'name': 'CPU Timestamps'}
+    sensor_frequency = { 'color': 'rgba(128,0,0,0.75)', 'data': [], 'name': 'Sensor Timestamps'}
     
     if request.method == 'GET':
         timestamp = float(request.GET['timestamp'])
@@ -376,7 +376,7 @@ def test_details_json(request, slug):
 
                 sensor_frequency['data'] = sensor_data
         
-    results.append(cpu_frequency)
     results.append(sensor_frequency)
+    results.append(cpu_frequency)
 
     return HttpResponse(json.dumps(results), content_type='application/json')
