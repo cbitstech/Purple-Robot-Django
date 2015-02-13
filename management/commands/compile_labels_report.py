@@ -29,8 +29,8 @@ class Command(BaseCommand):
             for label in labels:
                 slug_label = slugify(label['probe'])
                 
-                payloads = PurpleRobotReading.objects.filter(user_id=hash, probe=label, logged__gte=start).order_by('logged')
-            
+                payloads = PurpleRobotReading.objects.filter(user_id=hash, probe=slug_label, logged__gte=start).order_by('logged')
+                
                 count = payloads.count()
 
                 if count > 0:
