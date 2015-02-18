@@ -1,4 +1,5 @@
-from datetime import datetime
+import datetime
+import gzip
 import json
 import pytz
 import tempfile
@@ -12,26 +13,31 @@ from django.utils import timezone
 from django.utils.text import slugify
 from purple_robot_app.models import *
 
+from purple_robot.settings import REPORT_DEVICES
+
 class Command(BaseCommand):
     def handle(self, *args, **options):
-        hashes = PurpleRobotPayload.objects.order_by().values('user_id').distinct()
+        hashes = REPORT_DEVICES # PurpleRobotPayload.objects.order_by().values('user_id').distinct()
+
+        start = datetime.datetime.now() - datetime.timedelta(days=21)
         
         labels = PurpleRobotReading.objects.exclude(probe__startswith='edu.northwestern').values('probe').distinct()
         
         for hash in hashes:
-            hash = hash['user_id']
+            # hash = hash['user_id']
             
             for label in labels:
                 slug_label = slugify(label['probe'])
                 
-                payloads = PurpleRobotReading.objects.filter(user_id=hash, probe=label['probe']).order_by('logged')
-            
+                payloads = PurpleRobotReading.objects.filter(user_id=hash, probe=slug_label, logged__gte=start).order_by('logged')
+                
                 count = payloads.count()
 
                 if count > 0:
                     temp_file = tempfile.TemporaryFile()
-                
-                    temp_file.write('User ID\tTimestamp\tValue\n')
+                    gzf = gzip.GzipFile(mode='wb', fileobj=temp_file)
+
+                    gzf.write('User ID\tTimestamp\tValue\n')
                 
                     index = 0
                 
@@ -44,15 +50,18 @@ class Command(BaseCommand):
                         for payload in payloads[index:end]:
                             reading_json = json.loads(payload.payload)
 
-                            temp_file.write(hash + '\t' + str(reading_json['TIMESTAMP']) + '\t' + reading_json['FEATURE_VALUE'] + '\n')
+                            gzf.write(hash + '\t' + str(reading_json['TIMESTAMP']) + '\t' + reading_json['FEATURE_VALUE'] + '\n')
                             
                         index += 100
                 
+                    gzf.flush()
+                    gzf.close()
+                
                     temp_file.seek(0)
                         
-                    report = PurpleRobotReport(generated=timezone.now(), mime_type='text/plain', probe=slug_label, user_id=hash)
+                    report = PurpleRobotReport(generated=timezone.now(), mime_type='application/x-gzip', probe=slug_label, user_id=hash)
                     report.save()
-                    report.report_file.save(hash + '-' + slug_label + '.txt', File(temp_file))
+                    report.report_file.save(hash + '-' + slug_label + '.txt.gz', File(temp_file))
                     report.save()
                 
                     print('Wrote ' + hash + '-' + slug_label + '.txt')

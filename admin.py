@@ -17,14 +17,14 @@ class PurpleRobotPayloadAdmin(admin.ModelAdmin):
 admin.site.register(PurpleRobotPayload, PurpleRobotPayloadAdmin)
 
 class PurpleRobotEventAdmin(admin.ModelAdmin):
-    list_display = ('event', 'logged', 'user_id')
+    list_display = ('event', 'event_name', 'logged', 'user_id')
     list_filter = ['event', 'logged', 'user_id']
     search_fields = ['event', 'user_id', 'payload']
 
 admin.site.register(PurpleRobotEvent, PurpleRobotEventAdmin)
 
 class PurpleRobotReadingAdmin(admin.ModelAdmin):
-    list_display = ('probe', 'user_id', 'logged')
+    list_display = ('probe', 'user_id', 'logged', 'guid')
     list_filter = ['probe', 'user_id', 'logged']
     search_fields = ['probe', 'user_id', 'payload']
 

@@ -21,8 +21,8 @@
 					<td><a href="{% url 'test_report' test.slug %}">{{ test.slug }}</a></td>
 					<td>{{ test.probe_name }}</td>
 					<td>{{ test.frequency }}</td>
-					<td>{{ test.average_frequency }}</td>
-					<td>{{ test.max_gap_size }}</td>
+					<td>{{ test.average_frequency|floatformat:3 }}</td>
+					<td>{{ test.max_gap_size|floatformat:3 }}</td>
 					<td>{{ test.last_recorded_sample }}</td>
 					<td>{{ test.updated_ago|floatformat:0 }} sec. ago</td>
 					<td>

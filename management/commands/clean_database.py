@@ -12,11 +12,13 @@ from django.utils import timezone
 
 from purple_robot_app.models import *
 
-PROBE_NAME = 'edu.northwestern.cbits.purple_robot_manager.probes.builtin.SignificantMotionProbe'
+DAYS_KEPT = 21
 
 class Command(BaseCommand):
     def handle(self, *args, **options):
         now = timezone.now()
-        start = now - datetime.timedelta(1)
+        start = now - datetime.timedelta(DAYS_KEPT)
         
-        PurpleRobotReport.objects.filter(generated__lte=start).delete()
+        PurpleRobotReading.objects.filter(logged__lte=start).delete()
+        PurpleRobotEvent.objects.filter(logged__lte=start).delete()
+        PurpleRobotPayload.objects.filter(added__lte=start).delete()
