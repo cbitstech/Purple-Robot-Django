@@ -1,6 +1,7 @@
 import datetime
 import gc
 import json
+import pytz
 import string
 import time
 
@@ -87,8 +88,8 @@ class PurpleRobotTest(models.Model):
         report_end = time.time()
         report_start = report_end - (days * 24 * 60 * 60)
         
-        date_start = datetime.datetime.utcfromtimestamp(report_start)
-        date_end = datetime.datetime.utcfromtimestamp(report_end)
+        date_start = pytz.utc.localize(datetime.datetime.utcfromtimestamp(report_start))
+        date_end = pytz.utc.localize(datetime.datetime.utcfromtimestamp(report_end))
         
         batteries = []
         
@@ -110,8 +111,6 @@ class PurpleRobotTest(models.Model):
         
         report['battery'] = batteries
         
-        # gc.collect()
-            
         pending_files = []
         
         health_probe = 'edu.northwestern.cbits.purple_robot_manager.probes.builtin.RobotHealthProbe'
@@ -145,7 +144,7 @@ class PurpleRobotTest(models.Model):
         
         total_readings = target_readings.count()
         start_index = 0
-        
+
         while start_index < total_readings:
             end_index = start_index + 100
             
@@ -207,7 +206,7 @@ class PurpleRobotTest(models.Model):
         report['target'] = counts
         
         self.report = json.dumps(report, indent=1)
-        
+
         self.last_updated = timezone.now()
         self.save()
     
