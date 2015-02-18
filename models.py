@@ -141,7 +141,7 @@ class PurpleRobotTest(models.Model):
             
         timestamps = []
         
-        start_date = datetime.datetime.now() - datetime.timedelta(days)
+        start_date = timezone.now() - datetime.timedelta(days)
             
         target_readings = PurpleRobotReading.objects.filter(probe=self.probe, user_id=self.user_id, logged__gte=start_date)
         
@@ -198,7 +198,7 @@ class PurpleRobotTest(models.Model):
         
         self.report = json.dumps(report, indent=1)
         
-        self.last_updated = datetime.datetime.now()
+        self.last_updated = timezone.now()
         self.save()
     
     def average_frequency(self):
