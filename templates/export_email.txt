@@ -1,0 +1,16 @@
+Your Purple Robot data file is ready.
+
+Selected Probes:
+{{ job.probes.strip }}
+
+Selected Users:
+{{ job.users.strip }}
+
+Start Date: {{ job.start_date }}
+End Date: {{ job.end_date }}
+
+Download the file here: 
+
+{{ prefix }}{{ job.export_file_url }}
+
+-Purple Robot

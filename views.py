@@ -17,6 +17,7 @@ from django.template import RequestContext
 from django.template.loader import render_to_string
 from django.views.decorators.csrf import csrf_exempt
 
+from forms import *
 from models import *
 
 @csrf_exempt
@@ -380,3 +381,49 @@ def test_details_json(request, slug):
     results.append(cpu_frequency)
 
     return HttpResponse(json.dumps(results), content_type='application/json')
+    
+@staff_member_required
+def fetch_export_file(request, job_pk):
+    job = PurpleRobotExportJob.objects.get(pk=int(job_pk))
+    
+    return redirect(job.export_file.url)
+
+@staff_member_required
+def create_export_job(request):
+    c = RequestContext(request)
+
+    c['form'] = ExportJobForm()
+    
+    if request.method == 'POST':
+        form = ExportJobForm(request.POST)
+        
+        if form.is_valid():
+            job = PurpleRobotExportJob(destination=form.cleaned_data.get('destination'), start_date=form.cleaned_data.get('start_date'), end_date=form.cleaned_data.get('end_date')) 
+            
+            probes = ''
+            
+            for probe in form.cleaned_data.get('probes'):
+                if len(probes) > 0:
+                    probes += '\n'
+                    
+                probes += probe
+            
+            job.probes = probes
+
+            hashes = ''
+            
+            for hash in form.cleaned_data.get('hashes'):
+                if len(hashes) > 0:
+                    hashes += '\n'
+                    
+                hashes += hash
+            
+            job.users = hashes
+            
+            job.save()
+            
+            c['message'] = 'Export job queued successfully.'
+        else:
+            c['form'] = form
+
+    return render_to_response('purple_robot_export.html', c)

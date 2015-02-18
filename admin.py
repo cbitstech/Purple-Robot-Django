@@ -42,3 +42,9 @@ class PurpleRobotTestAdmin(admin.ModelAdmin):
     exclude = ('report',)
     
 admin.site.register(PurpleRobotTest, PurpleRobotTestAdmin)
+
+class PurpleRobotExportJobAdmin(admin.ModelAdmin):
+    list_display = ('start_date', 'end_date', 'destination', 'state')
+    list_filter = ['start_date', 'end_date', 'state']
+    
+admin.site.register(PurpleRobotExportJob, PurpleRobotExportJobAdmin)

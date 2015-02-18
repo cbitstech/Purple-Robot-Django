@@ -5,6 +5,7 @@ import pytz
 import string
 import time
 
+from django.core.urlresolvers import reverse
 from django.db import models
 from django.db.models.signals import pre_delete
 from django.dispatch.dispatcher import receiver
@@ -52,6 +53,33 @@ class PurpleRobotReading(models.Model):
     payload = models.TextField(max_length=8388608)
     logged = models.DateTimeField()
     guid = models.CharField(max_length=1024, db_index=True, null=True, blank=True)
+    
+EXPORT_JOB_STATE_CHOICES = (
+    ('pending', 'Pending'),
+    ('processing', 'Processing'),
+    ('finished', 'Finished'),
+    ('error', 'Error'),
+)
+
+class PurpleRobotExportJob(models.Model):
+    probes = models.TextField(max_length=8196, null=True, blank=True)
+    users = models.TextField(max_length=8196, null=True, blank=True)
+
+    start_date = models.DateField()
+    end_date = models.DateField()
+
+    export_file = models.FileField(blank=True, upload_to='export_files')
+    destination = models.EmailField(null=True, blank=True)
+    
+    state = models.CharField(max_length=512, choices=EXPORT_JOB_STATE_CHOICES, default='pending')
+    
+    def export_file_url(self):
+    	return reverse('fetch_export_file', args=str(self.pk))
+
+@receiver(pre_delete, sender=PurpleRobotExportJob)
+def purplerobotexportjob_delete(sender, instance, **kwargs):
+    instance.export_file.delete(False)
+
 
 class PurpleRobotReport(models.Model):
     probe = models.CharField(max_length=1024, null=True, blank=True)
