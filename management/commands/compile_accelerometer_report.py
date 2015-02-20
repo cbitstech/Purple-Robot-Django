@@ -37,6 +37,9 @@ class Command(BaseCommand):
                 
                 index = 0
                 
+                last_sensor = sys.maxint
+                base_ts = 0
+                
                 while index < count:
                     end = index + 100
                     
