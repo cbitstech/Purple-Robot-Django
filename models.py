@@ -74,7 +74,7 @@ class PurpleRobotExportJob(models.Model):
     state = models.CharField(max_length=512, choices=EXPORT_JOB_STATE_CHOICES, default='pending')
     
     def export_file_url(self):
-    	return reverse('fetch_export_file', args=str(self.pk))
+    	return reverse('fetch_export_file', args=[str(self.pk)])
 
 @receiver(pre_delete, sender=PurpleRobotExportJob)
 def purplerobotexportjob_delete(sender, instance, **kwargs):
