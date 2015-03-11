@@ -2,6 +2,7 @@ import datetime
 import gzip
 import json
 import pytz
+import sys
 import tempfile
 import urllib
 import urllib2
@@ -32,19 +33,26 @@ class Command(BaseCommand):
                 temp_file = tempfile.TemporaryFile()
 
                 gzf = gzip.GzipFile(mode='wb', fileobj=temp_file)
-                gzf.write('User ID\tSensor Timestamp\tCPU Timestamp\tX\tY\tZ\n')
+                gzf.write('User ID\tSensor Timestamp\tNormalized Timestamp\tCPU Timestamp\tX\tY\tZ\n')
                 
                 index = 0
+                
+                last_sensor = sys.maxint
+                base_ts = 0
                 
                 while index < count:
                     end = index + 100
                     
                     if end > count:
                         end = count
+                        
+                    last_sensor = sys.maxint
+                    base_ts = 0
                 
                     for payload in payloads[index:end]:
                         reading_json = json.loads(payload.payload)
                         
+                        ns = []
                         ss = []
                         ts = []
                         xs = []
@@ -64,6 +72,22 @@ class Command(BaseCommand):
                             
                             if has_sensor == False:
                                 ss.append(-1)
+                                ns.append(-1)
+                                
+                        if has_sensor:
+                            for i in range(0, len(ss)):
+                                sensor_ts = float(ss[i])
+                                
+                                normalized_ts = sensor_ts / (1000 * 1000 * 1000) 
+                                
+                                if normalized_ts < last_sensor:
+                                    cpu_time = ts[i]
+                                    
+                                    base_ts = cpu_time - normalized_ts
+                                    
+                                ns.append(base_ts + normalized_ts)
+                                
+                                last_sensor = normalized_ts
     
                         for x in reading_json['X']:
                             xs.append(x)
@@ -80,8 +104,9 @@ class Command(BaseCommand):
                             z = zs[i]
                             t = ts[i]
                             s = ss[i]
+                            n = ns[i]
                             
-                            gzf.write(hash + '\t' + str(s) + '\t' + str(t) + '\t' + str(x) + '\t' + str(y) + '\t' + str(z) + '\n')
+                            gzf.write(hash + '\t' + str(s) + '\t' + str(n) + '\t' + str(t) + '\t' + str(x) + '\t' + str(y) + '\t' + str(z) + '\n')
                             
                     index += 100
                     
