@@ -23,13 +23,15 @@ class Command(BaseCommand):
         
         labels = PurpleRobotReading.objects.exclude(probe__startswith='edu.northwestern').values('probe').distinct()
         
+        print('LABELS: ' + str(labels))
+        
         for hash in hashes:
             # hash = hash['user_id']
             
             for label in labels:
                 slug_label = slugify(label['probe'])
                 
-                payloads = PurpleRobotReading.objects.filter(user_id=hash, probe=slug_label, logged__gte=start).order_by('logged')
+                payloads = PurpleRobotReading.objects.filter(user_id=hash, probe=label['probe'], logged__gte=start).order_by('logged')
                 
                 count = payloads.count()
 
