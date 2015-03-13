@@ -23,7 +23,65 @@ Installation
 
 Copy this app into your projects file and run `./manage.py migrate` to create the tables for the models.
 
-To extract readings from uploaded payloads, `./manage.py extract_readings` should be set up to run on a frequent basis from mechanisms like **cron**.
+*Example:*
+
+1) Get the Django app.
+```
+$ cd /var/www/django/purple_robot
+$ git clone https://github.com/cbitstech/Purple-Robot-Django
+```
+  then rename Purple-Robot-Django --> to purple_robot_app
+```
+$ mv Purple-Robot-Django purple_robot_app
+```
+2) Install the requirements
+```
+$ pip install -r requirements.txt
+```
+3) Using a python virtualenv
+```
+$ /var/www/django/purple_robot$ source ../venv/bin/activate
+(venv)foo@bar:/var/www/django/purple_robot$ ./manage.py migrate
+```
+4) Include the JS and CSS elements
+```
+(venv)foo@bar:/var/www/django/purple_robot$ ./manage.py collectstatic
+```
+check this is working (http://HOSTNAME/pr/export)
+5) edit the purple_robot/settings.py, add:
+```py
+# SECURITY WARNING: don't run with debug turned on in production!
+DEBUG = True
+ADMINS = (('Admin Name', 'admin@email'),)
+URL_PREFIX = 'http://purple_robot.host/'
+TEMPLATE_DEBUG = True
+ALLOWED_HOSTS = []
+
+#EMAIL settings for your STMP server (email sent with send_mail())
+EMAIL_HOST = 'smtp.host.com'
+EMAIL_HOST_USER = 'username'
+EMAIL_HOST_PASSWORD = 'password'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+```
+
+6) CRON job
+A cron job controls a number of background actions through the `purple_robot/minutely_chronograph.sh` script, namely running:
+```sh
+./manage.py extract_readings,     #extracts readings from JSON payloads
+./manage.py run_export_jobs,      #exports data into csv files where requested
+./manage.py update_test_reports,  #updates reports
+```
+minutely_chronograph.sh should be set up to run on a frequent basis from mechanisms like **cron**. This should probably run on the main system cron i.e. `/etc/crontab` as a specified system user rather and set a non-root user.
+
+e.g. /etc/crontab line:
+```*  *    * * *   ubuntu  /var/www/django/purple_robot/purple_robot/minutely_chronograph.sh```
+
+Security
+--------
+* To prevent cached export files being viewed, do enable dir listing flag.
+* Do not run in debug mode.
+
 
 Relevant Exposed URLs
 ---------------------
@@ -33,6 +91,8 @@ Relevant Exposed URLs
 `http://HOSTNAME/pr/log`: The optional event logging endpoint where Purple Robot logs usage and troubleshooting events.
 
 `http://HOSTNAME/admin`: If the Django admin interface is enabled, uploaded data is available via that interface.
+
+`http://HOSTNAME/pr/export`: The data export probe data page page. Date mm/dd/yyyy format.
 
 Questions?
 ----------
