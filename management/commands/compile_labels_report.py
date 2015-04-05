@@ -1,4 +1,4 @@
-from datetime import datetime
+import datetime
 import gzip
 import json
 import pytz
@@ -13,20 +13,26 @@ from django.utils import timezone
 from django.utils.text import slugify
 from purple_robot_app.models import *
 
+from purple_robot.settings import REPORT_DEVICES
+
 class Command(BaseCommand):
     def handle(self, *args, **options):
-        hashes = PurpleRobotPayload.objects.order_by().values('user_id').distinct()
+        hashes = REPORT_DEVICES # PurpleRobotPayload.objects.order_by().values('user_id').distinct()
+
+        start = datetime.datetime.now() - datetime.timedelta(days=21)
         
         labels = PurpleRobotReading.objects.exclude(probe__startswith='edu.northwestern').values('probe').distinct()
         
+        print('LABELS: ' + str(labels))
+        
         for hash in hashes:
-            hash = hash['user_id']
+            # hash = hash['user_id']
             
             for label in labels:
                 slug_label = slugify(label['probe'])
                 
-                payloads = PurpleRobotReading.objects.filter(user_id=hash, probe=label['probe']).order_by('logged')
-            
+                payloads = PurpleRobotReading.objects.filter(user_id=hash, probe=label['probe'], logged__gte=start).order_by('logged')
+                
                 count = payloads.count()
 
                 if count > 0:

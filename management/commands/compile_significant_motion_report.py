@@ -1,4 +1,4 @@
-from datetime import datetime
+import datetime
 import gzip
 import json
 import pytz
@@ -11,18 +11,21 @@ from django.core.files.base import ContentFile
 from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 
+from purple_robot.settings import REPORT_DEVICES
 from purple_robot_app.models import *
 
 PROBE_NAME = 'edu.northwestern.cbits.purple_robot_manager.probes.builtin.SignificantMotionProbe'
 
 class Command(BaseCommand):
     def handle(self, *args, **options):
-        hashes = PurpleRobotPayload.objects.order_by().values('user_id').distinct()
+        hashes = REPORT_DEVICES # PurpleRobotPayload.objects.order_by().values('user_id').distinct()
+        
+        start = datetime.datetime.now() - datetime.timedelta(days=21)
         
         for hash in hashes:
-            hash = hash['user_id']
+#             hash = hash['user_id']
 
-            payloads = PurpleRobotReading.objects.filter(user_id=hash, probe=PROBE_NAME).order_by('logged')
+            payloads = PurpleRobotReading.objects.filter(user_id=hash, probe=PROBE_NAME, logged__gte=start).order_by('logged')
             
             count = payloads.count()
             if count > 0:

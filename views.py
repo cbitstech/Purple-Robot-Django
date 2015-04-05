@@ -1,6 +1,7 @@
 import json
 import hashlib
 import datetime
+import numpy
 import pytz
 import time
 import traceback
@@ -16,6 +17,7 @@ from django.template import RequestContext
 from django.template.loader import render_to_string
 from django.views.decorators.csrf import csrf_exempt
 
+from forms import *
 from models import *
 
 @csrf_exempt
@@ -289,3 +291,139 @@ def pr_by_user(request):
 
     return render_to_response('purple_robot_user.html', c)
 
+
+@staff_member_required
+def test_details_json(request, slug):
+    c = RequestContext(request)
+    
+    results = []
+    
+    test = PurpleRobotTest.objects.get(slug=slug) # prove, user_id
+    
+    cpu_frequency = { 'color': 'rgba(0,0,128,0.25)', 'data': [], 'name': 'CPU Timestamps'}
+    sensor_frequency = { 'color': 'rgba(128,0,0,0.75)', 'data': [], 'name': 'Sensor Timestamps'}
+    
+    if request.method == 'GET':
+        timestamp = float(request.GET['timestamp'])
+        
+        sample_date = datetime.datetime.utcfromtimestamp(timestamp)
+        
+        delta = datetime.timedelta(seconds=450)
+        
+        start = sample_date - delta
+        end = sample_date + delta
+        
+        readings = PurpleRobotReading.objects.filter(probe=test.probe, user_id=test.user_id, logged__gte=start, logged__lte=end).order_by('logged')
+        
+        sensor_stamps = []
+        cpu_stamps = []
+        
+        for reading in readings:
+            payload = json.loads(reading.payload)
+            
+            if 'SENSOR_TIMESTAMP' in payload:
+                for ts in payload['SENSOR_TIMESTAMP']:
+                    sensor_stamps.append(float(ts) / 1000000000)
+
+            if 'EVENT_TIMESTAMP' in payload:
+                for ts in payload['EVENT_TIMESTAMP']:
+                    cpu_stamps.append(ts)
+            else:
+                cpu_stamps.append(payload['TIMESTAMP'])
+                
+        if len(cpu_stamps) > 0:
+            cpu_stamps.sort()
+    
+            start_cpu = cpu_stamps[0]
+    
+            index = start_cpu
+            count = 0
+            cpu_data = []
+            
+            for ts in cpu_stamps:
+                if ts < index + 1:
+                    count += 1
+                else:
+                    while ts > index + 1:
+                        cpu_data.append({ 'x': index, 'y': count })
+                        index += 1
+                        count = 0
+                    
+            cpu_frequency['data'] = cpu_data
+            
+            if len(sensor_stamps) > 0:
+                sensor_stamps.sort()
+                start_sensor = sensor_stamps[0]
+                
+                new_sensor_stamps = []
+                
+                for ts in sensor_stamps:
+                    new_sensor_stamps.append(ts - start_sensor + start_cpu)
+                
+                sensor_stamps = new_sensor_stamps
+    
+                index = start_cpu
+                count = 0
+                sensor_data = []
+                
+                for ts in sensor_stamps:
+                    if ts < index + 1:
+                        count += 1
+                    else:
+                        while ts > index + 1:
+                            sensor_data.append({ 'x': index, 'y': count })
+                            index += 1
+                            count = 0
+
+                sensor_frequency['data'] = sensor_data
+        
+    results.append(sensor_frequency)
+    results.append(cpu_frequency)
+
+    return HttpResponse(json.dumps(results), content_type='application/json')
+    
+@staff_member_required
+def fetch_export_file(request, job_pk):
+    job = PurpleRobotExportJob.objects.get(pk=int(job_pk))
+    
+    return redirect(job.export_file.url)
+
+@staff_member_required
+def create_export_job(request):
+    c = RequestContext(request)
+
+    c['form'] = ExportJobForm()
+    
+    if request.method == 'POST':
+        form = ExportJobForm(request.POST)
+        
+        if form.is_valid():
+            job = PurpleRobotExportJob(destination=form.cleaned_data.get('destination'), start_date=form.cleaned_data.get('start_date'), end_date=form.cleaned_data.get('end_date')) 
+            
+            probes = ''
+            
+            for probe in form.cleaned_data.get('probes'):
+                if len(probes) > 0:
+                    probes += '\n'
+                    
+                probes += probe
+            
+            job.probes = probes
+
+            hashes = ''
+            
+            for hash in form.cleaned_data.get('hashes'):
+                if len(hashes) > 0:
+                    hashes += '\n'
+                    
+                hashes += hash
+            
+            job.users = hashes
+            
+            job.save()
+            
+            c['message'] = 'Export job queued successfully.'
+        else:
+            c['form'] = form
+
+    return render_to_response('purple_robot_export.html', c)

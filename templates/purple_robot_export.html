@@ -1,0 +1,79 @@
+{% extends "purple_robot_base.html" %}
+{% block 'title' %}Batch Data Export | Purple Robot{% endblock %}
+{% block 'additional_head' %}
+<style>
+	ul#id_probes
+	{
+		list-style: none;
+		padding:0; 
+		margin:0;
+	}
+
+	ul#id_hashes
+	{
+		list-style: none;
+		padding:0; 
+		margin:0;
+	}
+
+</style>
+{% endblock %}
+{% block 'content' %}
+	<div class="row">
+		<div class="col-md-12">
+			<h1>Batch Data Export</h1>
+			<p class="lead">
+				Fill out the form below to schedule a data export.
+				Due to the size of the data, it will not download directly from this page, you will receive an e-mail with a download link as soon as the job is processed.
+			</p>
+			
+			{% if message != None %}
+				<div class="alert alert-success" role="alert">{{ message }}</div>
+			{% endif %}
+			
+			{% if form.errors|length > 0 %}
+				<div class="alert alert-danger" role="alert">{{ form.errors }}</div>
+			{% endif %}
+		</div>
+	</div>
+	
+	<form action="" method="POST">
+		{% csrf_token %}
+		<div class="row">
+			<div class="col-md-4">
+				<p style="font-weight: bold; font-size: larger;">Probes</p>
+				{{ form.probes }}
+			</div>
+			<div class="col-md-4">
+				<p style="font-weight: bold; font-size: larger;">Users</p>
+				{{ form.hashes }}
+			</div>
+			<div class="col-md-4">
+				<p style="font-weight: bold; font-size: larger;">Other Parameters</p>
+				
+				<p>
+					<strong>Start Date</strong><br />
+					{{ form.start_date }}
+				</p>
+				
+				<p>
+					<strong>End Date</strong><br />
+					{{ form.end_date }}
+				</p>
+
+				<p style="margin-bottom: 3em;">
+					<strong>E-Mail Destination</strong><br />
+					{{ form.destination }}
+				</p>
+				
+				<button type="submit" class="btn btn-primary">Queue Export</button>
+			</div>
+		</div>
+	</form>
+{% endblock %}
+
+{% block 'page_script' %}
+	$(document).ready(function() {
+		$("li#header_user").addClass("active");
+	});
+{% endblock %}
