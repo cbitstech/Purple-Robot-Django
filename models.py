@@ -246,9 +246,9 @@ class PurpleRobotTest(models.Model):
         
             count = 0.0
         
-        for reading in readings:
-            if reading[1] is not None:
-                count += reading[1]
+            for reading in readings:
+                if reading[1] is not None:
+                    count += reading[1]
         
             first = float(readings[0][0])
             last = float(readings[-1][0])
