@@ -323,7 +323,10 @@ def test_details_json(request, slug):
             
             if 'SENSOR_TIMESTAMP' in payload:
                 for ts in payload['SENSOR_TIMESTAMP']:
-                    sensor_stamps.append(float(ts) / 1000000000)
+                    if payload['PROBE'] == 'edu.northwestern.cbits.purple_robot_manager.probes.devices.PebbleProbe':
+                        sensor_stamps.append(float(ts) / 1000)
+                    else:
+                        sensor_stamps.append(float(ts) / 1000000000)
 
             if 'EVENT_TIMESTAMP' in payload:
                 for ts in payload['EVENT_TIMESTAMP']:
@@ -351,31 +354,31 @@ def test_details_json(request, slug):
                     
             cpu_frequency['data'] = cpu_data
             
-            if len(sensor_stamps) > 0:
-                sensor_stamps.sort()
-                start_sensor = sensor_stamps[0]
-                
-                new_sensor_stamps = []
-                
-                for ts in sensor_stamps:
-                    new_sensor_stamps.append(ts - start_sensor + start_cpu)
-                
-                sensor_stamps = new_sensor_stamps
-    
-                index = start_cpu
-                count = 0
-                sensor_data = []
-                
-                for ts in sensor_stamps:
-                    if ts < index + 1:
-                        count += 1
-                    else:
-                        while ts > index + 1:
-                            sensor_data.append({ 'x': index, 'y': count })
-                            index += 1
-                            count = 0
+        if len(sensor_stamps) > 0:
+            sensor_stamps.sort()
+            start_sensor = sensor_stamps[0]
+            
+            new_sensor_stamps = []
+            
+            for ts in sensor_stamps:
+                new_sensor_stamps.append(ts - start_sensor + start_cpu)
+            
+            sensor_stamps = new_sensor_stamps
 
-                sensor_frequency['data'] = sensor_data
+            index = start_cpu
+            count = 0
+            sensor_data = []
+            
+            for ts in sensor_stamps:
+                if ts < index + 1:
+                    count += 1
+                else:
+                    while ts > index + 1:
+                        sensor_data.append({ 'x': index, 'y': count })
+                        index += 1
+                        count = 0
+
+            sensor_frequency['data'] = sensor_data
         
     results.append(sensor_frequency)
     results.append(cpu_frequency)

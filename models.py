@@ -74,7 +74,7 @@ class PurpleRobotExportJob(models.Model):
     state = models.CharField(max_length=512, choices=EXPORT_JOB_STATE_CHOICES, default='pending')
     
     def export_file_url(self):
-    	return reverse('fetch_export_file', args=[str(self.pk)])
+        return reverse('fetch_export_file', args=[str(self.pk)])
 
 @receiver(pre_delete, sender=PurpleRobotExportJob)
 def purplerobotexportjob_delete(sender, instance, **kwargs):
@@ -184,7 +184,20 @@ class PurpleRobotTest(models.Model):
                 
                     for ts in payload['EVENT_TIMESTAMP']:
 #                        timestamps.append(sensor_time)
-                        timestamps.append(ts)
+#                        timestamps.append(ts)
+                        if ts > 1000000000000:
+                            ts = ts / 1000
+                   
+                        if ts >= report_start and ts <= report_end:
+                            timestamps.append(ts)
+#                       else:
+#                           print('THROWING OUT ' + str(ts) + ' < ' + str(original_start) + ' PK: ' + str(reading.pk)) 
+                elif 'SENSOR_TIMESTAMP' in payload:
+                    sensor_time = payload['TIMESTAMP']
+                
+                    for ts in payload['SENSOR_TIMESTAMP']:
+#                        timestamps.append(sensor_time)
+#                        timestamps.append(ts)
                         if ts > 1000000000000:
                             ts = ts / 1000
                    
@@ -241,18 +254,21 @@ class PurpleRobotTest(models.Model):
     def average_frequency(self):
         report = json.loads(self.report)
         
-        readings = report['target']
+        try:
+            readings = report['target']
         
-        count = 0.0
+            count = 0.0
         
-        for reading in readings:
-            if reading[1] != None:
-                count += reading[1]
+            for reading in readings:
+                if reading[1] != None:
+                    count += reading[1]
         
-        first = float(readings[0][0])
-        last = float(readings[-1][0])
+            first = float(readings[0][0])
+            last = float(readings[-1][0])
         
-        return float(count / (last - first))
+            return float(count / (last - first))
+        except KeyError:
+            return -1
         
     def passes(self):
         return self.average_frequency() > self.frequency

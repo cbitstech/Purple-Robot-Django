@@ -21,7 +21,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         hashes = REPORT_DEVICES # PurpleRobotPayload.objects.order_by().values('user_id').distinct()
         
-        start = datetime.datetime.now() - datetime.timedelta(days=21)
+        start = datetime.datetime.now() - datetime.timedelta(days=14)
 
         for hash in hashes:
             # hash = hash['user_id']
