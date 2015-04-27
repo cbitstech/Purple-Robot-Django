@@ -1,6 +1,6 @@
 from django import forms
 
-from models import *
+from models import PurpleRobotReading
 
 class ExportJobForm(forms.Form):
     start_date = forms.DateField()  
@@ -21,7 +21,7 @@ class ExportJobForm(forms.Form):
 
         hashes = []
 
-        for hash in PurpleRobotReading.objects.order_by('user_id').values_list('user_id', flat=True).distinct():
-            hashes.append((hash, hash))
+        for user_hash in PurpleRobotReading.objects.order_by('user_id').values_list('user_id', flat=True).distinct():
+            hashes.append((user_hash, user_hash))
 
         self.fields['hashes'] = forms.MultipleChoiceField(choices=hashes, widget=forms.CheckboxSelectMultiple())

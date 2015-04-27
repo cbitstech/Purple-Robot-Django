@@ -1,24 +1,18 @@
 import datetime
 import gzip
 import json
-import pytz
 import tempfile
-import urllib
-import urllib2
 
-from django.contrib.sites.models import Site
 from django.core.files import File
-from django.core.files.base import ContentFile
 from django.core.mail import send_mail
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import BaseCommand
 from django.db.models import Q
 from django.template import Context
 from django.template.loader import render_to_string
-from django.utils import timezone
 from django.utils.crypto import get_random_string
 
 from purple_robot.settings import ADMINS, URL_PREFIX
-from purple_robot_app.models import *
+from purple_robot_app.models import PurpleRobotExportJob, PurpleRobotReading
 
 class Command(BaseCommand):
     def handle(self, *args, **options):
@@ -49,34 +43,38 @@ class Command(BaseCommand):
             gzf.write('User ID\tProbe\tLogged\tPayload\n')
             
             for probe in probes:
-                if q_probes == None:
+                if q_probes is None:
                     q_probes = Q(probe=probe)
                 else:
                     q_probes = (q_probes | Q(probe=probe))
                     
-            for hash in hashes:
+            for user_hash in hashes:
                 readings = None
                 
-                if q_probes != None:
-                    readings = PurpleRobotReading.objects.filter(q_probes, user_id=hash, logged__gte=start, logged__lte=end).order_by('logged')
+                if q_probes is not None:
+                    readings = PurpleRobotReading.objects.filter(q_probes, user_id=user_hash, logged__gte=start, logged__lte=end).order_by('logged')
                 else:
-                    readings = PurpleRobotReading.objects.filter(user_id=hash, logged__gte=start, logged__lte=end).order_by('logged')
+                    readings = PurpleRobotReading.objects.filter(user_id=user_hash, logged__gte=start, logged__lte=end).order_by('logged')
                     
                 for reading in readings:
                     payload = json.loads(reading.payload)
                     
-                    gzf.write(hash + '\t' + reading.probe + '\t' + str(reading.logged) + '\t' + json.dumps(payload) + '\n')
+                    gzf.write(user_hash + '\t' + reading.probe + '\t' + str(reading.logged) + '\t' + json.dumps(payload) + '\n')
                     
             gzf.flush()
             gzf.close()
                 
             temp_file.seek(0)
             
-            job.export_file.save('export_' + job.start_date.isoformat() + '_' + job.end_date.isoformat() + '_' + get_random_string(16).lower() + '.txt.gz', File(temp_file))
+            job.export_file.save('export_' + job.start_date.isoformat() + '_' + \
+                                 job.end_date.isoformat() + '_' + \
+                                 get_random_string(16).lower() + '.txt.gz', \
+                                 File(temp_file))
+                                 
             job.state = 'finished'
             job.save()
             
-            if job.destination != None and job.destination != '':
+            if job.destination is not None and job.destination != '':
                 c = Context()
                 c['job'] = job
                 c['prefix'] = URL_PREFIX

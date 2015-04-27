@@ -1,17 +1,14 @@
 import datetime
 import gzip
 import json
-import pytz
 import tempfile
-import urllib
-import urllib2
 
 from django.core.files import File
-from django.core.files.base import ContentFile
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import BaseCommand
 from django.utils import timezone
 from django.utils.text import slugify
-from purple_robot_app.models import *
+
+from purple_robot_app.models import PurpleRobotReading, PurpleRobotReport
 
 from purple_robot.settings import REPORT_DEVICES
 
@@ -23,15 +20,11 @@ class Command(BaseCommand):
         
         labels = PurpleRobotReading.objects.exclude(probe__startswith='edu.northwestern').values('probe').distinct()
         
-        print('LABELS: ' + str(labels))
-        
-        for hash in hashes:
-            # hash = hash['user_id']
-            
+        for user_hash in hashes:
             for label in labels:
                 slug_label = slugify(label['probe'])
                 
-                payloads = PurpleRobotReading.objects.filter(user_id=hash, probe=label['probe'], logged__gte=start).order_by('logged')
+                payloads = PurpleRobotReading.objects.filter(user_id=user_hash, probe=label['probe'], logged__gte=start).order_by('logged')
                 
                 count = payloads.count()
 
@@ -52,7 +45,7 @@ class Command(BaseCommand):
                         for payload in payloads[index:end]:
                             reading_json = json.loads(payload.payload)
 
-                            gzf.write(hash + '\t' + str(reading_json['TIMESTAMP']) + '\t' + reading_json['FEATURE_VALUE'] + '\n')
+                            gzf.write(user_hash + '\t' + str(reading_json['TIMESTAMP']) + '\t' + reading_json['FEATURE_VALUE'] + '\n')
                             
                         index += 100
                 
@@ -63,7 +56,7 @@ class Command(BaseCommand):
                         
                     report = PurpleRobotReport(generated=timezone.now(), mime_type='application/x-gzip', probe=slug_label, user_id=hash)
                     report.save()
-                    report.report_file.save(hash + '-' + slug_label + '.txt.gz', File(temp_file))
+                    report.report_file.save(user_hash + '-' + slug_label + '.txt.gz', File(temp_file))
                     report.save()
                 
-                    print('Wrote ' + hash + '-' + slug_label + '.txt')
+                    print('Wrote ' + user_hash + '-' + slug_label + '.txt')

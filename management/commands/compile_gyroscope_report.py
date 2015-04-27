@@ -1,18 +1,14 @@
 import datetime
 import gzip
 import json
-import pytz
 import sys
 import tempfile
-import urllib
-import urllib2
 
 from django.core.files import File
-from django.core.files.base import ContentFile
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import BaseCommand
 from django.utils import timezone
 
-from purple_robot_app.models import *
+from purple_robot_app.models import PurpleRobotReading, PurpleRobotReport
 from purple_robot.settings import REPORT_DEVICES
 
 PROBE_NAME = 'edu.northwestern.cbits.purple_robot_manager.probes.builtin.GyroscopeProbe'
@@ -23,10 +19,10 @@ class Command(BaseCommand):
         
         start = datetime.datetime.now() - datetime.timedelta(days=21)
 
-        for hash in hashes:
+        for user_hash in hashes:
             # hash = hash['user_id']
 
-            payloads = PurpleRobotReading.objects.filter(user_id=hash, probe=PROBE_NAME, logged__gte=start).order_by('logged')
+            payloads = PurpleRobotReading.objects.filter(user_id=user_hash, probe=PROBE_NAME, logged__gte=start).order_by('logged')
             
             count = payloads.count()
             if count > 0:
@@ -68,7 +64,7 @@ class Command(BaseCommand):
                         for t in reading_json['EVENT_TIMESTAMP']:
                             ts.append(t)
                             
-                            if has_sensor == False:
+                            if has_sensor is False:
                                 ss.append(-1)
                                 ns.append(-1)
                                 
@@ -104,7 +100,7 @@ class Command(BaseCommand):
                             s = ss[i]
                             n = ns[i]
                             
-                            gzf.write(hash + '\t' + str(s) + '\t' + str(n) + '\t' + str(t) + '\t' + str(x) + '\t' + str(y) + '\t' + str(z) + '\n')
+                            gzf.write(user_hash + '\t' + str(s) + '\t' + str(n) + '\t' + str(t) + '\t' + str(x) + '\t' + str(y) + '\t' + str(z) + '\n')
                             
                     index += 100
                     
@@ -113,9 +109,9 @@ class Command(BaseCommand):
                 
                 temp_file.seek(0)
                         
-                report = PurpleRobotReport(generated=timezone.now(), mime_type='application/x-gzip', probe=PROBE_NAME, user_id=hash)
+                report = PurpleRobotReport(generated=timezone.now(), mime_type='application/x-gzip', probe=PROBE_NAME, user_id=user_hash)
                 report.save()
                 report.report_file.save(hash + '-gyroscope.txt.gz', File(temp_file))
                 report.save()
                 
-                print('Wrote ' + hash + '-gyroscope.txt')
+                print('Wrote ' + user_hash + '-gyroscope.txt')
