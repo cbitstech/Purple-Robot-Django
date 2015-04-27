@@ -1,6 +1,9 @@
 from django.contrib import admin
 
-from purple_robot_app.models import *
+from purple_robot_app.models import PurpleRobotConfiguration, PurpleRobotPayload, \
+                                    PurpleRobotEvent, PurpleRobotReading, \
+                                    PurpleRobotReport, PurpleRobotTest, \
+                                    PurpleRobotExportJob
 
 class PurpleRobotConfigurationAdmin(admin.ModelAdmin):
     list_display = ('name', 'slug', 'added')
