@@ -107,5 +107,3 @@ class Command(BaseCommand):
                 report.save()
                 report.report_file.save(user_hash + '-barometer.txt.gz', File(temp_file))
                 report.save()
-                
-                print('Wrote ' + user_hash + '-barometer.txt')

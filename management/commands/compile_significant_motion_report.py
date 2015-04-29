@@ -52,5 +52,3 @@ class Command(BaseCommand):
                 report.save()
                 report.report_file.save(hash + '-significant-motion.txt.gz', File(temp_file))
                 report.save()
-                
-                print('Wrote ' + user_hash + '-significant-motion.txt')

@@ -111,7 +111,5 @@ class Command(BaseCommand):
                         
                 report = PurpleRobotReport(generated=timezone.now(), mime_type='application/x-gzip', probe=PROBE_NAME, user_id=user_hash)
                 report.save()
-                report.report_file.save(hash + '-gyroscope.txt.gz', File(temp_file))
+                report.report_file.save(user_hash + '-gyroscope.txt.gz', File(temp_file))
                 report.save()
-                
-                print('Wrote ' + user_hash + '-gyroscope.txt')
