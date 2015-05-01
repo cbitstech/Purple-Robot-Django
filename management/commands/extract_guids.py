@@ -10,9 +10,10 @@ from purple_robot_app.models import *
 
 class Command(BaseCommand):
     def handle(self, *args, **options):
-        readings = PurpleRobotReading.objects.filter(guid=None)[:1000]
+        readings = PurpleRobotReading.objects.filter(guid=None)[:5000]
         
         for reading in readings:
             payload = json.loads(reading.payload)
             reading.guid = payload['GUID']
             reading.save()
+
