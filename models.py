@@ -1,5 +1,4 @@
 import datetime
-import gc
 import json
 import pytz
 import string
@@ -34,7 +33,7 @@ class PurpleRobotEvent(models.Model):
     payload = models.TextField(max_length=(1024 * 1024 * 8), null=True, blank=True)
     
     def event_name(self):
-        if self.name != None:
+        if self.name is None:
             return self.name
             
         if self.event == 'java_exception':
@@ -74,7 +73,7 @@ class PurpleRobotExportJob(models.Model):
     state = models.CharField(max_length=512, choices=EXPORT_JOB_STATE_CHOICES, default='pending')
     
     def export_file_url(self):
-    	return reverse('fetch_export_file', args=[str(self.pk)])
+        return reverse('fetch_export_file', args=[str(self.pk)])
 
 @receiver(pre_delete, sender=PurpleRobotExportJob)
 def purplerobotexportjob_delete(sender, instance, **kwargs):
@@ -123,7 +122,10 @@ class PurpleRobotTest(models.Model):
         
         battery_probe = 'edu.northwestern.cbits.purple_robot_manager.probes.builtin.BatteryProbe'
         
-        battery_readings = PurpleRobotReading.objects.filter(logged__gte=date_start, logged__lte=date_end, probe=battery_probe, user_id=self.user_id).order_by('logged')
+        battery_readings = PurpleRobotReading.objects.filter(logged__gte=date_start, \
+                                                             logged__lte=date_end, \
+                                                             probe=battery_probe, \
+                                                             user_id=self.user_id).order_by('logged')
         
         for battery_reading in battery_readings:
             payload = json.loads(battery_reading.payload)
@@ -143,7 +145,10 @@ class PurpleRobotTest(models.Model):
         
         health_probe = 'edu.northwestern.cbits.purple_robot_manager.probes.builtin.RobotHealthProbe'
         
-        health_readings = PurpleRobotReading.objects.filter(logged__gte=date_start, logged__lte=date_end, probe=health_probe, user_id=self.user_id).order_by('logged')
+        health_readings = PurpleRobotReading.objects.filter(logged__gte=date_start, \
+                                                            logged__lte=date_end, \
+                                                            probe=health_probe, \
+                                                            user_id=self.user_id).order_by('logged')
         
         for health_reading in health_readings:
             payload = json.loads(health_reading.payload)
@@ -159,14 +164,10 @@ class PurpleRobotTest(models.Model):
             
         report['pending_files'] = pending_files
         
-        # gc.collect()
-        
         if ('target' in report) == False:
             report['target'] = []
 
         timestamps = []
-        
-        start_date = timezone.now() - datetime.timedelta(days)
             
         target_readings = PurpleRobotReading.objects.filter(probe=self.probe, user_id=self.user_id, logged__gte=date_start).order_by('logged')
         
@@ -180,18 +181,21 @@ class PurpleRobotTest(models.Model):
                 payload = json.loads(reading.payload)
                 
                 if 'EVENT_TIMESTAMP' in payload:
-                    sensor_time = payload['TIMESTAMP']
-                
                     for ts in payload['EVENT_TIMESTAMP']:
-#                        timestamps.append(sensor_time)
-                        timestamps.append(ts)
                         if ts > 1000000000000:
                             ts = ts / 1000
                    
                         if ts >= report_start and ts <= report_end:
                             timestamps.append(ts)
-#                       else:
-#                           print('THROWING OUT ' + str(ts) + ' < ' + str(original_start) + ' PK: ' + str(reading.pk)) 
+                elif 'SENSOR_TIMESTAMP' in payload:
+                    sensor_time = payload['TIMESTAMP']
+                
+                    for ts in payload['SENSOR_TIMESTAMP']:
+                        if ts > 1000000000000:
+                            ts = ts / 1000
+                   
+                        if ts >= report_start and ts <= report_end:
+                            timestamps.append(ts)
                 else:
                     ts = payload['TIMESTAMP']
                     
@@ -210,9 +214,7 @@ class PurpleRobotTest(models.Model):
         count = 0
         
         for timestamp in timestamps:
-            if timestamp < report_start:
-                pass
-            elif timestamp > report_end:
+            if timestamp < report_start or timestamp > report_end:
                 pass
             elif timestamp >= start and timestamp < end:
                 count += 1
@@ -228,31 +230,32 @@ class PurpleRobotTest(models.Model):
         counts.append([start, count])
         counts.append([report_end, None])
 
-#        counts = [p for p in counts if p[0] >= original_start]
-#        counts.sort(key=lambda reading: reading[0])
-        
         report['target'] = counts
         
         self.report = json.dumps(report, indent=1)
 
         self.last_updated = timezone.now()
         self.save()
+        
     
     def average_frequency(self):
         report = json.loads(self.report)
         
-        readings = report['target']
+        try:
+            readings = report['target']
         
-        count = 0.0
+            count = 0.0
         
-        for reading in readings:
-            if reading[1] != None:
-                count += reading[1]
+            for reading in readings:
+                if reading[1] is not None:
+                    count += reading[1]
         
-        first = float(readings[0][0])
-        last = float(readings[-1][0])
+            first = float(readings[0][0])
+            last = float(readings[-1][0])
         
-        return float(count / (last - first))
+            return float(count / (last - first))
+        except KeyError:
+            return -1
         
     def passes(self):
         return self.average_frequency() > self.frequency
@@ -275,13 +278,13 @@ class PurpleRobotTest(models.Model):
         max_gap = 0
         
         for i in range(0, len(timestamps) - 1):
-           one = timestamps[i]
-           two = timestamps[i + 1]
+            one = timestamps[i]
+            two = timestamps[i + 1]
+            
+            gap = two - one
            
-           gap = two - one
-           
-           if gap > max_gap:
-              max_gap = gap
+            if gap > max_gap:
+                max_gap = gap
               
         return max_gap
         
@@ -293,9 +296,9 @@ class PurpleRobotTest(models.Model):
         timestamps = report['target']
         
         for timestamp in timestamps:
-             if len(timestamp) > 1:
+            if len(timestamp) > 1:
                 output.append({ 'x': timestamp[0], 'y': timestamp[1] })
-             else:
+            else:
                 output.append({ 'x': timestamp[0], 'y': None })
                 
         return json.dumps(output, indent=indent)
@@ -305,7 +308,6 @@ class PurpleRobotTest(models.Model):
     
         now = time.time()
         start = now - (24 * 60 * 60)
-        end = start + (60 * 15)
         
         measurements = [ { 'x': start, 'y': None }]
         
@@ -328,7 +330,6 @@ class PurpleRobotTest(models.Model):
     
         now = time.time()
         start = now - (24 * 60 * 60)
-        end = start + (60 * 15)
         
         measurements = [ { 'x': start, 'y': None }]
         

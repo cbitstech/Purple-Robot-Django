@@ -1,12 +1,8 @@
-import datetime
 import json
-import pytz
-import urllib
-import urllib2
 
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import BaseCommand
 
-from purple_robot_app.models import *
+from purple_robot_app.models import PurpleRobotReading
 
 class Command(BaseCommand):
     def handle(self, *args, **options):

@@ -1,16 +1,9 @@
 import datetime
-import json
-import pytz
-import tempfile
-import urllib
-import urllib2
 
-from django.core.files import File
-from django.core.files.base import ContentFile
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import BaseCommand
 from django.utils import timezone
 
-from purple_robot_app.models import *
+from purple_robot_app.models import PurpleRobotReport
 
 PROBE_NAME = 'edu.northwestern.cbits.purple_robot_manager.probes.builtin.SignificantMotionProbe'
 
