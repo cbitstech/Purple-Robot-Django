@@ -12,4 +12,3 @@ class Command(BaseCommand):
             payload = json.loads(reading.payload)
             reading.guid = payload['GUID']
             reading.save()
-
