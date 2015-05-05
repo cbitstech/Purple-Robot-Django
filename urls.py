@@ -1,12 +1,10 @@
-from django.conf.urls import patterns, include, url
-from django.contrib.sitemaps import *
-from django.views.generic import RedirectView
-from django.views.decorators.cache import cache_page
+from django.conf.urls import patterns, url
 
-from views import *
+from views import ingest_payload_print, log_event, pr_home, pr_by_probe, \
+    pr_by_user, test_report, test_details_json, tests_by_user, \
+    create_export_job, fetch_export_file, tests_all, ingest_payload
 
 urlpatterns = patterns('',
-#    url(r'^(?P<config>.+).scm$', pr_configuration, name='pr_configuration'),
     url(r'^print$', ingest_payload_print, name='ingest_payload_print'),
     url(r'^log$', log_event, name='log_event'),
     url(r'^home$', pr_home, name='pr_home'),
@@ -18,6 +16,5 @@ urlpatterns = patterns('',
     url(r'^export$', create_export_job, name='create_export_job'),
     url(r'^export_files/(?P<job_pk>.+)$', fetch_export_file, name='fetch_export_file'),
     url(r'^tests/$', tests_all, name='tests_all'),
-#    url(r'^test$', test_payload, name='test_payload'),
     url(r'^$', ingest_payload, name='ingest_payload'),
 )
