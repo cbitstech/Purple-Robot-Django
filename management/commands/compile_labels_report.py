@@ -58,5 +58,3 @@ class Command(BaseCommand):
                     report.save()
                     report.report_file.save(user_hash + '-' + slug_label + '.txt.gz', File(temp_file))
                     report.save()
-                
-                    print('Wrote ' + user_hash + '-' + slug_label + '.txt')
