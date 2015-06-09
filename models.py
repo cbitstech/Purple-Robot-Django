@@ -10,11 +10,26 @@ from django.db.models.signals import pre_delete
 from django.dispatch.dispatcher import receiver
 from django.utils import timezone
 
+
 class PurpleRobotConfiguration(models.Model):
     name = models.CharField(max_length=1024)
     slug = models.SlugField(max_length=1024, unique=True)
     contents = models.TextField(max_length=1048576)
     added = models.DateTimeField()
+    
+class PurpleRobotDeviceGroup(models.Model):
+    group_id = models.SlugField(max_length=256, unique=True)
+    description = models.TextField(max_length=1048576, null=True, blank=True)
+    configuration = models.ForeignKey(PurpleRobotConfiguration, related_name='groups', null=True, blank=True)
+
+class PurpleRobotDevice(models.Model):
+    device_id = models.SlugField(max_length=256, unique=True)
+    description = models.TextField(max_length=1048576, null=True, blank=True)
+    device_group = models.ForeignKey(PurpleRobotDeviceGroup, related_name='devices', null=True, blank=True)
+    configuration = models.ForeignKey(PurpleRobotConfiguration, related_name='devices', null=True, blank=True)
+    config_last_fetched = models.DateTimeField(null=True, blank=True)
+    config_last_user_agent = models.CharField(max_length=1024, null=True, blank=True)
+    hash_key = models.CharField(max_length=128, null=True, blank=True)
 
 class PurpleRobotPayload(models.Model):
     added = models.DateTimeField(auto_now_add=True)

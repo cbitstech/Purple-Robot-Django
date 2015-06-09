@@ -3,7 +3,8 @@ from django.contrib import admin
 from purple_robot_app.models import PurpleRobotConfiguration, PurpleRobotPayload, \
                                     PurpleRobotEvent, PurpleRobotReading, \
                                     PurpleRobotReport, PurpleRobotTest, \
-                                    PurpleRobotExportJob
+                                    PurpleRobotExportJob, PurpleRobotDeviceGroup, \
+                                    PurpleRobotDevice
 
 class PurpleRobotConfigurationAdmin(admin.ModelAdmin):
     list_display = ('name', 'slug', 'added')
@@ -51,3 +52,14 @@ class PurpleRobotExportJobAdmin(admin.ModelAdmin):
     list_filter = ['start_date', 'end_date', 'state']
     
 admin.site.register(PurpleRobotExportJob, PurpleRobotExportJobAdmin)
+
+class PurpleRobotDeviceGroupAdmin(admin.ModelAdmin):
+    list_display = ('group_id', 'configuration', 'devices__count')
+    
+admin.site.register(PurpleRobotDeviceGroup, PurpleRobotDeviceGroupAdmin)
+
+class PurpleRobotDeviceAdmin(admin.ModelAdmin):
+    list_display = ('device_id', '', 'configuration', 'config_last_fetched', 'config_last_user_agent', 'hash_key')
+    list_filter = ['device_group', 'configuration']
+    
+admin.site.register(PurpleRobotDevice, PurpleRobotDeviceAdmin)
