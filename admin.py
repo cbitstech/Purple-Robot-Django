@@ -54,12 +54,12 @@ class PurpleRobotExportJobAdmin(admin.ModelAdmin):
 admin.site.register(PurpleRobotExportJob, PurpleRobotExportJobAdmin)
 
 class PurpleRobotDeviceGroupAdmin(admin.ModelAdmin):
-    list_display = ('group_id', 'configuration', 'devices__count')
+    list_display = ('group_id', 'configuration',)
     
 admin.site.register(PurpleRobotDeviceGroup, PurpleRobotDeviceGroupAdmin)
 
 class PurpleRobotDeviceAdmin(admin.ModelAdmin):
-    list_display = ('device_id', '', 'configuration', 'config_last_fetched', 'config_last_user_agent', 'hash_key')
+    list_display = ('device_id', 'configuration', 'config_last_fetched', 'config_last_user_agent', 'hash_key')
     list_filter = ['device_group', 'configuration']
     
 admin.site.register(PurpleRobotDevice, PurpleRobotDeviceAdmin)

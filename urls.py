@@ -2,9 +2,10 @@ from django.conf.urls import patterns, url
 
 from views import ingest_payload_print, log_event, pr_home, pr_by_probe, \
     pr_by_user, test_report, test_details_json, tests_by_user, \
-    create_export_job, fetch_export_file, tests_all, ingest_payload
+    create_export_job, fetch_export_file, tests_all, ingest_payload, config
 
 urlpatterns = patterns('',
+    url(r'^config$', config, name='pr_config'),
     url(r'^print$', ingest_payload_print, name='ingest_payload_print'),
     url(r'^log$', log_event, name='log_event'),
     url(r'^home$', pr_home, name='pr_home'),
