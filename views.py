@@ -27,8 +27,9 @@ def config(request):
             config = device.device_group.configuration
             
         device.config_last_fetched = datetime.datetime.now()
+        
         try:
-            device.config_last_user_agent = request.META['User-Agent']
+            device.config_last_user_agent = request.META['HTTP_USER_AGENT']
         except KeyError:
             device.config_last_user_agent = 'Unknown'
         
