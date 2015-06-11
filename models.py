@@ -1,4 +1,5 @@
 import datetime
+import hashlib
 import json
 import pytz
 import string
@@ -21,6 +22,7 @@ class PurpleRobotConfiguration(models.Model):
         return self.name
     
 class PurpleRobotDeviceGroup(models.Model):
+    name = models.CharField(max_length=1024)
     group_id = models.SlugField(max_length=256, unique=True)
     description = models.TextField(max_length=1048576, null=True, blank=True)
     configuration = models.ForeignKey(PurpleRobotConfiguration, related_name='groups', null=True, blank=True)
@@ -29,6 +31,7 @@ class PurpleRobotDeviceGroup(models.Model):
         return self.group_id
 
 class PurpleRobotDevice(models.Model):
+    name = models.CharField(max_length=1024)
     device_id = models.SlugField(max_length=256, unique=True)
     description = models.TextField(max_length=1048576, null=True, blank=True)
     device_group = models.ForeignKey(PurpleRobotDeviceGroup, related_name='devices', null=True, blank=True)
@@ -39,6 +42,144 @@ class PurpleRobotDevice(models.Model):
 
     def __unicode__(self):
         return self.device_id
+    
+    def init_hash(self):
+        if self.hash_key == None or len(self.hash_key) < 32:
+            m = hashlib.md5()
+            m.update(self.device_id.encode('utf-8'))
+            
+            self.hash_key = m.hexdigest()
+            self.save()
+
+        
+    def last_upload(self):
+        self.init_hash()
+            
+        for payload in PurpleRobotPayload.objects.filter(user_id=self.hash_key).order_by('-added')[:1]:
+            return payload.added
+            
+        return None
+        
+    def last_upload_status(self):
+        upload = self.last_upload()
+        
+        now = timezone.now()
+        
+        diff = now - upload
+        
+        if diff.days > 0:
+            return "danger"
+        elif diff.seconds > (8 * 60 * 60):
+            return "warning"
+            
+        return "ok"
+
+    def config_last_fetched_status(self):
+        upload = self.config_last_fetched
+        
+        now = timezone.now()
+        
+        diff = now - upload
+        
+        if diff.days > 1:
+            return "danger"
+        elif diff.days > 0:
+            return "warning"
+            
+        return "ok"
+
+    def last_battery(self):
+        self.init_hash()
+            
+        for reading in PurpleRobotReading.objects.filter(user_id=self.hash_key, probe='edu.northwestern.cbits.purple_robot_manager.probes.builtin.BatteryProbe').order_by('-logged')[:1]:
+            data = json.loads(reading.payload)
+            
+            return data['level']
+            
+        return None
+
+    def last_battery_status(self):
+        battery = self.last_battery()
+        
+        if battery <= 25:
+            return "danger"
+        elif battery <= 33:
+            return "warning"
+            
+        return "ok"
+
+    def status(self):
+        statuses = []
+        
+        statuses.append(self.last_upload_status())
+        statuses.append(self.config_last_fetched_status())
+        statuses.append(self.last_battery_status())
+        
+        if 'danger' in statuses:
+            return 'danger'
+
+        if 'warning' in statuses:
+            return 'warning'
+            
+        return 'ok'
+
+    def last_pending_count(self):
+        self.init_hash()
+            
+        for reading in PurpleRobotReading.objects.filter(user_id=self.hash_key, probe='edu.northwestern.cbits.purple_robot_manager.probes.builtin.RobotHealthProbe').order_by('-logged')[:1]:
+            data = json.loads(reading.payload)
+            
+            return data['PENDING_COUNT']
+            
+        return None
+
+    def last_model(self):
+        self.init_hash()
+            
+        for reading in PurpleRobotReading.objects.filter(user_id=self.hash_key, probe='edu.northwestern.cbits.purple_robot_manager.probes.builtin.HardwareInformationProbe').order_by('-logged')[:1]:
+            data = json.loads(reading.payload)
+            
+            return data['MODEL']
+            
+        return None
+
+    def last_platform(self):
+        self.init_hash()
+            
+        for reading in PurpleRobotReading.objects.filter(user_id=self.hash_key, probe='edu.northwestern.cbits.purple_robot_manager.probes.builtin.SoftwareInformationProbe').order_by('-logged')[:1]:
+            data = json.loads(reading.payload)
+            
+            return 'Android ' + data['RELEASE']
+            
+        return None
+
+    def last_location(self):
+        self.init_hash()
+            
+        for reading in PurpleRobotReading.objects.filter(user_id=self.hash_key, probe='edu.northwestern.cbits.purple_robot_manager.probes.builtin.LocationProbe').order_by('-logged')[:1]:
+            data = json.loads(reading.payload)
+            
+            return { 'latitude': data['LATITUDE'], 'longitude': data['LONGITUDE'] }
+            
+        return None
+        
+    def last_readings(self):
+        self.init_hash()
+
+        readings = []
+        
+        for item in PurpleRobotReading.objects.filter(user_id=self.hash_key).order_by('probe', '-logged').distinct('probe'):
+            reading = {}
+            
+            reading['name'] = item.probe.split('.')[-1]
+            reading['last_update'] = item.logged
+            reading['num_readings'] = PurpleRobotReading.objects.filter(user_id=self.hash_key, probe=item.probe).count()
+            reading['frequency'] = 'TODO'
+            reading['status'] = 'TODO'
+            
+            readings.append(reading)
+        
+        return sorted(readings, key=lambda k: k['last_update'], reverse=True) 
 
 class PurpleRobotPayload(models.Model):
     added = models.DateTimeField(auto_now_add=True)

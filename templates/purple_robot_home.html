@@ -1,11 +1,18 @@
 {% extends "purple_robot_base.html" %}
+{% load purple_robot %}
 {% block 'title' %}Purple Robot Data Portal{% endblock %}
 {% block 'content' %}
-	<div class="starter-template">
-		<h1>Bootstrap starter template</h1>
-		<p class="lead">Use this document as a way to quickly start any new project.<br> All you get is this text and a mostly barebones HTML document.</p>
+	{% pr_home_custom_console %}
+	<div class="col-md-12">
+		{% for group in device_groups %}
+			<h3>{{ group.name }}</h3>
+			{% pr_group_table group.group_id %}
+		{% endfor %}
 	</div>
 {% endblock %}
-
 {% block 'page_script' %}
+	$(document).ready(function()
+	{
+		$('[data-toggle="tooltip"]').tooltip()
+	});
 {% endblock %}

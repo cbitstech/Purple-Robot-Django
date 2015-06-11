@@ -1,0 +1,217 @@
+{% extends "purple_robot_base.html" %}
+{% load purple_robot %}
+{% block 'title' %}{{ device.name }}{% endblock %}
+{% block 'content' %}
+	{% pr_device_custom_console %}
+	<div class="col-md-12">
+		<h1>{{ device.name }}</h1>
+	</div>
+	<div class="col-md-9">
+		<div class="alert alert-danger" role="alert">
+			<span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
+			<span class="sr-only">Alert:</span>
+			Alerts have not yet been defined properly (todo).
+		</div>
+		<div class="alert alert-warning" role="alert">
+			<span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
+			<span class="sr-only">Warning:</span>
+			Warnings have not yet been defined properly (todo).
+		</div>
+
+		<h3>Probes</h3>
+		<table class="table">
+			<thead>
+				<tr>
+					<th>Probe</th>
+					<th class="text-center"><span class="glyphicon glyphicon-time" data-toggle="tooltip" data-placement="top" title="Last Reading"></span></th>
+					<th class="text-center">#</th>
+					<th class="text-center"><span class="glyphicon glyphicon-stats" data-toggle="tooltip" data-placement="top" title="Frequency"></span></th>
+					<th class="text-center"><span class="glyphicon glyphicon-heart" data-toggle="tooltip" data-placement="top" title="Status"></span></th>
+				</tr>
+			</thead>
+			<tbody>
+				{% for reading in device.last_readings %}
+					<tr>
+						<td>{{ reading.name }}</th>
+						<td class="text-center">{% pr_date_ago reading.last_update %}</td>
+						<td class="text-center">{{ reading.num_readings }}</td>
+						<td class="text-center">{{ reading.frequency }}</td>
+						<td class="text-center">{{ reading.status }}</td>
+					</tr>
+				{% endfor %}
+			</tbody>
+		</table>
+
+		<h3>Models</h3>
+		
+		<table class="table">
+			<thead>
+				<tr>
+				<th>#</th>
+				<th>First Name</th>
+				<th>Last Name</th>
+				<th>Username</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr>
+					<th scope="row">1</th>
+					<td>Mark</td>
+					<td>Otto</td>
+					<td>@mdo</td>
+				</tr>
+				<tr>
+					<th scope="row">2</th>
+					<td>Jacob</td>
+					<td>Thornton</td>
+					<td>@fat</td>
+				</tr>
+				<tr>
+					<th scope="row">3</th>
+					<td>Larry</td>
+					<td>the Bird</td>
+					<td>@twitter</td>
+				</tr>
+			</tbody>
+		</table>
+
+		<h3>Triggers</h3>
+		
+		<table class="table">
+			<thead>
+				<tr>
+				<th>#</th>
+				<th>First Name</th>
+				<th>Last Name</th>
+				<th>Username</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr>
+					<th scope="row">1</th>
+					<td>Mark</td>
+					<td>Otto</td>
+					<td>@mdo</td>
+				</tr>
+				<tr>
+					<th scope="row">2</th>
+					<td>Jacob</td>
+					<td>Thornton</td>
+					<td>@fat</td>
+				</tr>
+				<tr>
+					<th scope="row">3</th>
+					<td>Larry</td>
+					<td>the Bird</td>
+					<td>@twitter</td>
+				</tr>
+			</tbody>
+		</table>
+
+		<h3>Event Log</h3>
+		
+		<table class="table">
+			<thead>
+				<tr>
+				<th>#</th>
+				<th>First Name</th>
+				<th>Last Name</th>
+				<th>Username</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr>
+					<th scope="row">1</th>
+					<td>Mark</td>
+					<td>Otto</td>
+					<td>@mdo</td>
+				</tr>
+				<tr>
+					<th scope="row">2</th>
+					<td>Jacob</td>
+					<td>Thornton</td>
+					<td>@fat</td>
+				</tr>
+				<tr>
+					<th scope="row">3</th>
+					<td>Larry</td>
+					<td>the Bird</td>
+					<td>@twitter</td>
+				</tr>
+			</tbody>
+		</table>
+	</div>
+	<div class="col-md-3">
+		<h4 style="margin-top: 0;">Details</h4>
+		
+		<div>
+			<span>
+				<small><strong>Device ID</strong></small>
+			</span>
+			<span class="pull-right"><small>{{ device.device_id }}</small></span>
+		</div>
+
+		<div>
+			<span>
+				<small><strong>App</strong></small>
+			</span>
+			<span class="pull-right"><small>{{ device.config_last_user_agent }}</small></span>
+		</div>
+
+		<div>
+			<span>
+				<small><strong>Model</strong></small>
+			</span>
+			<span class="pull-right"><small>{{ device.last_model }}</small></span>
+		</div>
+
+		<div>
+			<span>
+				<small><strong>Platform</strong></small>
+			</span>
+			<span class="pull-right"><small>{{ device.last_platform }}</small></span>
+		</div>
+
+		<div>
+			<span>
+				<small><strong>Config Update</strong></small>
+			</span>
+			<span class="pull-right"><small>{% pr_date_ago device.config_last_fetched %}</small></span>
+		</div>
+
+		<div>
+			<span>
+				<small><strong>Battery Level</strong></small>
+			</span>
+			<span class="pull-right"><small>{{ device.last_battery }}%</small></span>
+		</div>
+
+		<div>
+			<span>
+				<small><strong>Last Upload</strong></small>
+			</span>
+			<span class="pull-right"><small>{% pr_date_ago device.last_upload %}</small></span>
+		</div>
+
+		<div>
+			<span>
+				<small><strong>Pending Uploads</strong></small>
+			</span>
+			<span class="pull-right"><small>{{ device.last_pending_count }}</small></span>
+		</div>
+
+
+		<h4 style="margin-top: 2em;">Basic Settings</h4>
+		[ Common settings ]<br />
+
+		<h4 style="margin-top: 2em;">Installed Apps</h4>
+		installed apps <br />
+
+	</div>
+{% endblock %}
+{% block 'page_script' %}
+	$(document).ready(function()
+	{
+		$('[data-toggle="tooltip"]').tooltip()
+	});
+{% endblock %}

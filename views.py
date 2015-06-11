@@ -6,6 +6,7 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.http import HttpResponse
 from django.shortcuts import render_to_response, get_object_or_404, redirect
 from django.template import RequestContext
+from django.template.loader import render_to_string
 from django.views.decorators.csrf import csrf_exempt
 
 from forms import ExportJobForm
@@ -42,7 +43,7 @@ def config(request):
         
     content_type = 'application/json'
     
-    if config.contents.strip().lower().startswith('(begin '):
+    if config.contents.strip().lower().startswith('(begin'):
         content_type = 'text/x-scheme'
         
     
@@ -191,7 +192,19 @@ def tests_all(request):
 
 @staff_member_required
 def pr_home(request):
-    return render_to_response('purple_robot_home.html')
+    c = RequestContext(request)
+    
+    c['device_groups'] = PurpleRobotDeviceGroup.objects.all()
+
+    return render_to_response('purple_robot_home.html', c)
+
+@staff_member_required
+def pr_device(request, device_id):
+    c = RequestContext(request)
+    
+    c['device'] = PurpleRobotDevice.objects.get(device_id=device_id)
+
+    return render_to_response('purple_robot_device.html', c)
 
 
 @staff_member_required
@@ -362,3 +375,4 @@ def create_export_job(request):
             c['form'] = form
 
     return render_to_response('purple_robot_export.html', c)
+    
