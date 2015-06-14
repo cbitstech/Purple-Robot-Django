@@ -1,3 +1,4 @@
+import calendar
 import datetime
 import hashlib
 import json
@@ -10,11 +11,12 @@ from django.db import models
 from django.db.models.signals import pre_delete
 from django.dispatch.dispatcher import receiver
 from django.utils import timezone
+from django.utils.safestring import SafeString
 
 
 class PurpleRobotConfiguration(models.Model):
     name = models.CharField(max_length=1024)
-    slug = models.SlugField(max_length=1024, unique=True)
+    slug = models.CharField(max_length=1024, unique=True, db_index=True)
     contents = models.TextField(max_length=1048576)
     added = models.DateTimeField()
 
@@ -32,7 +34,7 @@ class PurpleRobotDeviceGroup(models.Model):
 
 class PurpleRobotDevice(models.Model):
     name = models.CharField(max_length=1024)
-    device_id = models.SlugField(max_length=256, unique=True)
+    device_id = models.CharField(max_length=256, unique=True, db_index=True)
     description = models.TextField(max_length=1048576, null=True, blank=True)
     device_group = models.ForeignKey(PurpleRobotDeviceGroup, related_name='devices', null=True, blank=True)
     configuration = models.ForeignKey(PurpleRobotConfiguration, related_name='devices', null=True, blank=True)
@@ -88,6 +90,31 @@ class PurpleRobotDevice(models.Model):
             
         return "ok"
 
+    def battery_history(self, start=None, end=None):
+        self.init_hash()
+        
+        now = timezone.now()
+        
+        if start == None:
+            start = now - datetime.timedelta(days=1)
+            
+        if end == None:
+            end = now
+            
+        readings = []
+        
+        for reading in PurpleRobotReading.objects.filter(user_id=self.hash_key, probe='edu.northwestern.cbits.purple_robot_manager.probes.builtin.BatteryProbe', logged__gte=start, logged__lte=end).order_by('logged'):
+            data = json.loads(reading.payload)
+            
+            timestamp = calendar.timegm(reading.logged.timetuple()) 
+            
+            if len(readings) == 0 or readings[-1]['level'] != data['level'] or (timestamp - readings[-1]['timestamp']) > (30 * 60):
+                item = { 'level': data['level'], 'timestamp': timestamp }
+            
+            readings.append(item)
+        
+        return readings
+
     def last_battery(self):
         self.init_hash()
             
@@ -123,6 +150,31 @@ class PurpleRobotDevice(models.Model):
             
         return 'ok'
 
+    def pending_history(self, start=None, end=None):
+        self.init_hash()
+        
+        now = timezone.now()
+        
+        if start == None:
+            start = now - datetime.timedelta(days=1)
+            
+        if end == None:
+            end = now
+            
+        readings = []
+        
+        for reading in PurpleRobotReading.objects.filter(user_id=self.hash_key, probe='edu.northwestern.cbits.purple_robot_manager.probes.builtin.RobotHealthProbe', logged__gte=start, logged__lte=end).order_by('logged'):
+            data = json.loads(reading.payload)
+            
+            timestamp = calendar.timegm(reading.logged.timetuple()) 
+            
+            if len(readings) == 0 or readings[-1]['count'] != data['PENDING_COUNT'] or (timestamp - readings[-1]['timestamp']) > (30 * 60):
+                item = { 'count': data['PENDING_COUNT'], 'timestamp': timestamp }
+            
+            readings.append(item)
+        
+        return readings
+
     def last_pending_count(self):
         self.init_hash()
             
@@ -130,6 +182,16 @@ class PurpleRobotDevice(models.Model):
             data = json.loads(reading.payload)
             
             return data['PENDING_COUNT']
+            
+        return None
+
+    def triggers(self):
+        self.init_hash()
+            
+        for reading in PurpleRobotReading.objects.filter(user_id=self.hash_key, probe='edu.northwestern.cbits.purple_robot_manager.probes.builtin.RobotHealthProbe').order_by('-logged')[:1]:
+            data = json.loads(reading.payload)
+            
+            return data['TRIGGERS']
             
         return None
 
@@ -181,6 +243,19 @@ class PurpleRobotDevice(models.Model):
         
         return sorted(readings, key=lambda k: k['last_update'], reverse=True) 
 
+    def events(self, start=None, end=None):
+        self.init_hash()
+        
+        now = timezone.now()
+        
+        if start == None:
+            start = now - datetime.timedelta(days=7)
+            
+        if end == None:
+            end = now
+            
+        return PurpleRobotEvent.objects.filter(user_id=self.hash_key, logged__gte=start, logged__lte=end).order_by('-logged')
+
 class PurpleRobotPayload(models.Model):
     added = models.DateTimeField(auto_now_add=True)
     payload = models.TextField(max_length=8388608)
@@ -210,6 +285,20 @@ class PurpleRobotEvent(models.Model):
             self.save()
             
         return self.name
+        
+    def description(self):
+        payload = json.loads(self.payload)
+        
+        if self.event == 'pr_script_log_message':
+            return payload['message']
+        elif self.event == 'set_user_id':
+            return SafeString(payload['old_id'] + ' &rarr; ' + payload['new_id'])
+        elif self.event == 'java_exception':
+            return payload['stacktrace'].split('\n')[0]
+        elif self.event == 'broadcast_message':
+            return payload['message']
+        
+        return self.event + ' (' + str(self.pk) + ')'
 
 class PurpleRobotReading(models.Model):
     probe = models.CharField(max_length=1024, null=True, blank=True, db_index=True)

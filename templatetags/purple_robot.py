@@ -1,4 +1,5 @@
 import datetime
+import pytz
 
 from django import template
 from django.conf import settings
@@ -60,6 +61,48 @@ class GroupTableNode(template.Node):
         context['device_group'] = PurpleRobotDeviceGroup.objects.get(group_id=group_id)
         
         return render_to_string('tag_pr_group_table.html', context)
+
+@register.tag(name="pr_timestamp_ago")
+def tag_pr_timestamp_ago(parser, token):
+    try:
+        tag_name, timestamp = token.split_contents()
+    except ValueError:
+        raise template.TemplateSyntaxError("%r tag requires a single argument" % token.contents.split()[0])
+        
+    return TimestampAgoNode(timestamp)
+
+class TimestampAgoNode(template.Node):
+    def __init__(self, timestamp):
+        self.timestamp = template.Variable(timestamp)
+
+    def render(self, context):
+        timestamp = self.timestamp.resolve(context)
+        
+        date_obj = datetime.datetime.fromtimestamp(int(timestamp) / 1000, pytz.utc)
+        
+        if date_obj == None:
+            return 'None'
+        
+        now = timezone.now()
+        
+        diff = now - date_obj
+        
+        ago_str = 'Unknown'
+        
+        if diff.days > 0:
+            ago_str = str(diff.days) + 'd'
+        else:
+            minutes = diff.seconds / 60
+            
+            if minutes >= 60:
+                ago_str = str(minutes / 60) + 'h'
+            else:
+                ago_str = str(minutes) + 'm'
+        
+        context['ago'] = ago_str
+        context['date'] = date_obj
+        
+        return render_to_string('tag_pr_date_ago.html', context)
         
 
 @register.tag(name="pr_date_ago")
@@ -77,6 +120,9 @@ class DateAgoNode(template.Node):
 
     def render(self, context):
         date_obj = self.date_obj.resolve(context)
+        
+        if date_obj == None:
+            return 'None'
         
         now = timezone.now()
         

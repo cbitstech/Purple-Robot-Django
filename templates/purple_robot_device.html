@@ -1,5 +1,6 @@
 {% extends "purple_robot_base.html" %}
 {% load purple_robot %}
+{% load static %}
 {% block 'title' %}{{ device.name }}{% endblock %}
 {% block 'content' %}
 	{% pr_device_custom_console %}
@@ -17,6 +18,12 @@
 			<span class="sr-only">Warning:</span>
 			Warnings have not yet been defined properly (todo).
 		</div>
+
+		<h3>Battery History</h3>
+		<div id="battery_chart" style="border: 1px solid #808080; height: 180px; width: 100%; overflow: hidden;"></div>
+
+		<h3>Pending Files</h3>
+		<div id="pending_chart" style="border: 1px solid #808080; height: 180px; width: 100%; overflow: hidden;"></div>
 
 		<h3>Probes</h3>
 		<table class="table">
@@ -42,35 +49,23 @@
 			</tbody>
 		</table>
 
-		<h3>Models</h3>
+		<h3>Models (TODO)</h3>
 		
 		<table class="table">
 			<thead>
 				<tr>
-				<th>#</th>
-				<th>First Name</th>
-				<th>Last Name</th>
-				<th>Username</th>
+					<td>Name</td>
+					<th>Type</th>
+					<th>Last Prediction</th>
+					<th>Date</th>
 				</tr>
 			</thead>
 			<tbody>
 				<tr>
-					<th scope="row">1</th>
-					<td>Mark</td>
-					<td>Otto</td>
-					<td>@mdo</td>
-				</tr>
-				<tr>
-					<th scope="row">2</th>
-					<td>Jacob</td>
-					<td>Thornton</td>
-					<td>@fat</td>
-				</tr>
-				<tr>
-					<th scope="row">3</th>
-					<td>Larry</td>
-					<td>the Bird</td>
-					<td>@twitter</td>
+					<th scope="row">Test Model</th>
+					<td>Random Forest</td>
+					<td>Play Golf</td>
+					<td>42d</td>
 				</tr>
 			</tbody>
 		</table>
@@ -80,64 +75,42 @@
 		<table class="table">
 			<thead>
 				<tr>
-				<th>#</th>
-				<th>First Name</th>
-				<th>Last Name</th>
-				<th>Username</th>
+				<th>Name</th>
+				<th>Identifier</th>
+				<th>Type</th>
+				<th>Last Fired</th>
 				</tr>
 			</thead>
 			<tbody>
-				<tr>
-					<th scope="row">1</th>
-					<td>Mark</td>
-					<td>Otto</td>
-					<td>@mdo</td>
-				</tr>
-				<tr>
-					<th scope="row">2</th>
-					<td>Jacob</td>
-					<td>Thornton</td>
-					<td>@fat</td>
-				</tr>
-				<tr>
-					<th scope="row">3</th>
-					<td>Larry</td>
-					<td>the Bird</td>
-					<td>@twitter</td>
-				</tr>
+				{% for trigger in device.triggers %}
+					<tr>
+						<td>{{ trigger.name }}</th>
+						<td>{{ trigger.identifier }}</td>
+						<td>{{ trigger.trigger_type }}</td>
+						<td>{% pr_timestamp_ago trigger.last_fired %}</td>
+					</tr>
+				{% endfor %}
 			</tbody>
 		</table>
 
-		<h3>Event Log</h3>
+		<h3>Event Log (Last Week)</h3>
 		
-		<table class="table">
+		<table class="table" data-toggle="table" data-pagination="true" data-search="true">
 			<thead>
 				<tr>
-				<th>#</th>
-				<th>First Name</th>
-				<th>Last Name</th>
-				<th>Username</th>
+					<th>Event</th>
+					<th>Generated</th>
+					<th>Description</th>
 				</tr>
 			</thead>
 			<tbody>
-				<tr>
-					<th scope="row">1</th>
-					<td>Mark</td>
-					<td>Otto</td>
-					<td>@mdo</td>
-				</tr>
-				<tr>
-					<th scope="row">2</th>
-					<td>Jacob</td>
-					<td>Thornton</td>
-					<td>@fat</td>
-				</tr>
-				<tr>
-					<th scope="row">3</th>
-					<td>Larry</td>
-					<td>the Bird</td>
-					<td>@twitter</td>
-				</tr>
+				{% for event in device.events %}
+					<tr>
+						<td>{{ event.event }}</td>
+						<td>{{ event.logged }}</td>
+						<td>{{ event.description }}</td>
+					</tr>
+				{% endfor %}
 			</tbody>
 		</table>
 	</div>
@@ -208,10 +181,103 @@
 		installed apps <br />
 
 	</div>
+	<script src="{% static 'vendor/rickshaw.min.js' %}"></script>
+	<script src="{% static 'vendor/moment-with-locales.min.js' %}"></script>
 {% endblock %}
 {% block 'page_script' %}
 	$(document).ready(function()
 	{
-		$('[data-toggle="tooltip"]').tooltip()
+		$('[data-toggle="tooltip"]').tooltip();
+		
+		var batterySeries = [];
+		
+		{% for reading in device.battery_history %}
+			batterySeries.push({ "y": {{ reading.level }}, "x": {{ reading.timestamp }} });
+		{% endfor %}
+		
+		var graph = new Rickshaw.Graph( {
+			element: document.getElementById("battery_chart"),
+			height: 180,
+			width: $("div#battery_chart").width(),
+			renderer: 'scatterplot',
+			series: [
+				{
+					color: "#2E79B9",
+					data: batterySeries,
+					name: 'Battery Level'
+				}
+			],
+			padding: { top: 0.25, bottom: 0.25 }
+		});
+		
+		var timeUnit = {
+			'name': '4 hour', 
+			'seconds': 3600 * 4, 
+			'formatter': function(d)
+			{ 
+				return moment(d).format('h:mm a');
+			}
+		};
+		
+		var x_axis = new Rickshaw.Graph.Axis.Time( { graph: graph, timeUnit: timeUnit } );
+
+		var hoverDetail = new Rickshaw.Graph.HoverDetail( {
+			graph: graph,
+			onShow: function(event)
+			{
+				var text = $(".x_label").text();
+				var parenIndex = text.indexOf(")");
+				text = text.substring(0, parenIndex + 1);
+			},
+			xFormatter: function(x)
+			{ 
+				var date = new Date (x * 1000);
+				return "" + date 
+			},
+			yFormatter: function(y) { return Math.floor(y) + "%" }
+		});
+		
+		graph.render();
+		
+		var pendingSeries = [];
+		
+		{% for reading in device.pending_history %}
+			pendingSeries.push({ "y": {{ reading.count }}, "x": {{ reading.timestamp }} });
+		{% endfor %}
+
+		var pendingGraph = new Rickshaw.Graph( {
+			element: document.getElementById("pending_chart"),
+			height: 180,
+			width: $("div#pending_chart").width(),
+			renderer: 'scatterplot',
+			series: [
+				{
+					color: "#58B957",
+					data: pendingSeries,
+					name: 'Pending Uploads'
+				}
+			],
+			padding: { top: 0.25, bottom: 0.25 }
+		});
+
+		x_axis = new Rickshaw.Graph.Axis.Time( { graph: pendingGraph, timeUnit: timeUnit } );
+
+		hoverDetail = new Rickshaw.Graph.HoverDetail( {
+			graph: pendingGraph,
+			onShow: function(event)
+			{
+				var text = $(".x_label").text();
+				var parenIndex = text.indexOf(")");
+				text = text.substring(0, parenIndex + 1);
+			},
+			xFormatter: function(x)
+			{ 
+				var date = new Date (x * 1000);
+				return "" + date 
+			},
+			yFormatter: function(y) { return Math.floor(y) + " files" }
+		});
+		
+		pendingGraph.render();
 	});
 {% endblock %}
