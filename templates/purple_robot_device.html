@@ -128,49 +128,91 @@
 			<span>
 				<small><strong>App</strong></small>
 			</span>
-			<span class="pull-right"><small>{{ device.config_last_user_agent }}</small></span>
+			{% with value=device.config_last_user_agent %}
+				{% if value %}
+					<span class="pull-right"><small>{{ value }}</small></span>
+				{% else %}
+					<span class="pull-right"><small>Unknown</small></span>
+				{% endif %}
+			{% endwith %}
 		</div>
 
 		<div>
 			<span>
 				<small><strong>Model</strong></small>
 			</span>
-			<span class="pull-right"><small>{{ device.last_model }}</small></span>
+			{% with value=device.last_model %}
+				{% if value %}
+					<span class="pull-right"><small>{{ value }}</small></span>
+				{% else %}
+					<span class="pull-right"><small>Unknown</small></span>
+				{% endif %}
+			{% endwith %}
 		</div>
 
 		<div>
 			<span>
 				<small><strong>Platform</strong></small>
 			</span>
-			<span class="pull-right"><small>{{ device.last_platform }}</small></span>
+			{% with value=device.last_platform %}
+				{% if value %}
+					<span class="pull-right"><small>{{ value }}</small></span>
+				{% else %}
+					<span class="pull-right"><small>Unknown</small></span>
+				{% endif %}
+			{% endwith %}
 		</div>
 
 		<div>
 			<span>
 				<small><strong>Config Update</strong></small>
 			</span>
-			<span class="pull-right"><small>{% pr_date_ago device.config_last_fetched %}</small></span>
+			{% with value=device.config_last_fetched %}
+				{% if value %}
+					<span class="pull-right"><small>{{ value }}</small></span>
+				{% else %}
+					<span class="pull-right"><small>Unknown</small></span>
+				{% endif %}
+			{% endwith %}
 		</div>
 
 		<div>
 			<span>
 				<small><strong>Battery Level</strong></small>
 			</span>
-			<span class="pull-right"><small>{{ device.last_battery }}%</small></span>
+			{% with value=device.last_battery %}
+				{% if value %}
+					<span class="pull-right"><small>{{ value }}%</small></span>
+				{% else %}
+					<span class="pull-right"><small>Unknown</small></span>
+				{% endif %}
+			{% endwith %}
 		</div>
 
 		<div>
 			<span>
 				<small><strong>Last Upload</strong></small>
 			</span>
-			<span class="pull-right"><small>{% pr_date_ago device.last_upload %}</small></span>
+			{% with value=device.last_upload %}
+				{% if value %}
+					<span class="pull-right"><small>{{ value }}</small></span>
+				{% else %}
+					<span class="pull-right"><small>Unknown</small></span>
+				{% endif %}
+			{% endwith %}
 		</div>
 
 		<div>
 			<span>
 				<small><strong>Pending Uploads</strong></small>
 			</span>
-			<span class="pull-right"><small>{{ device.last_pending_count }}</small></span>
+			{% with value=device.last_pending_count %}
+				{% if value %}
+					<span class="pull-right"><small>{{ value }}</small></span>
+				{% else %}
+					<span class="pull-right"><small>Unknown</small></span>
+				{% endif %}
+			{% endwith %}
 		</div>
 
 
