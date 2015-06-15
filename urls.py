@@ -3,13 +3,15 @@ from django.conf.urls import patterns, url
 from views import ingest_payload_print, log_event, pr_home, pr_by_probe, \
     pr_by_user, test_report, test_details_json, tests_by_user, \
     create_export_job, fetch_export_file, tests_all, ingest_payload, config, \
-    pr_device
+    pr_device, pr_add_group, pr_add_device
 
 urlpatterns = patterns('',
     url(r'^config$', config, name='pr_config'),
     url(r'^print$', ingest_payload_print, name='ingest_payload_print'),
     url(r'^log$', log_event, name='log_event'),
     url(r'^home$', pr_home, name='pr_home'),
+    url(r'^add_group$', pr_add_group, name='pr_add_group'),
+    url(r'^group/(?P<group_id>.+)/add_device$', pr_add_device, name='pr_add_device'),
     url(r'^device/(?P<device_id>.+)$', pr_device, name='pr_device'),
     url(r'^probes$', pr_by_probe, name='pr_by_probe'),
     url(r'^user$', pr_by_user, name='pr_by_user'),

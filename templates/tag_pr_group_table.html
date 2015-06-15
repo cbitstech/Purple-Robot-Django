@@ -77,6 +77,10 @@
 					{% endwith %}
 				</td>
 			</tr>
+			{% empty %}
+				<tr>
+					<td colspan="10" class="text-center"><em>No devices are in this group.</em></td>
+				</tr>
 		{% endfor %}
 	</tbody>
 </table>
