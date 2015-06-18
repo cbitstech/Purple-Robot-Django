@@ -3,6 +3,7 @@ import hashlib
 import datetime
 
 from django.contrib.admin.views.decorators import staff_member_required
+from django.core.urlresolvers import reverse
 from django.http import HttpResponse, UnreadablePostError
 from django.shortcuts import render_to_response, get_object_or_404, redirect
 from django.template import RequestContext
@@ -38,7 +39,7 @@ def config(request):
         pass
         
     if config == None:
-        config = PurpleRobotConfiguration.objects.get(slug='default')
+        config = get_object_or_404(PurpleRobotConfiguration, slug='default')
         
     content_type = 'application/json'
     
