@@ -11,6 +11,40 @@ from django.views.decorators.csrf import csrf_exempt
 from forms import ExportJobForm
 from models import PurpleRobotPayload, PurpleRobotTest, PurpleRobotEvent, PurpleRobotReport, PurpleRobotExportJob, PurpleRobotReading
 
+def config(request):
+    config = None
+    
+    try:
+        device_id = request.GET['user_id']
+        
+        device = PurpleRobotDevice.objects.get(device_id=device_id)
+        
+        if device.configuration != None:
+            config = device.configuration
+        elif device.device_group.configuration != None:
+            config = device.device_group.configuration
+            
+        device.config_last_fetched = datetime.datetime.now()
+        
+        try:
+            device.config_last_user_agent = request.META['HTTP_USER_AGENT']
+        except KeyError:
+            device.config_last_user_agent = 'Unknown'
+        
+        device.save()
+    except:
+        pass
+        
+    if config == None:
+        config = PurpleRobotConfiguration.objects.get(slug='default')
+        
+    content_type = 'application/json'
+    
+    if config.contents.strip().lower().startswith('(begin'):
+        content_type = 'text/x-scheme'
+    
+    return HttpResponse(config.contents, content_type=content_type)
+
 @csrf_exempt
 def ingest_payload(request):
     result = {}
