@@ -79,8 +79,8 @@ e.g. /etc/crontab line:
 
 Security
 --------
-* To prevent cached export files being viewed, do enable dir listing flag.
-* Do not run in debug mode.
+* To prevent cached export files being viewed, *do not* enable directory listings in web server serving static content.
+* Do not run in debug mode. Configure the `ADMINS` key with your e-mail address and receive error reports via e-mail.
 
 
 Relevant Exposed URLs
@@ -92,7 +92,7 @@ Relevant Exposed URLs
 
 `http://HOSTNAME/admin`: If the Django admin interface is enabled, uploaded data is available via that interface.
 
-`http://HOSTNAME/pr/export`: The data export probe data page page. Date mm/dd/yyyy format.
+`http://HOSTNAME/pr/export`: The data export probe data page page. Dates are in `mm/dd/yyyy` format.
 
 Questions?
 ----------

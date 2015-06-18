@@ -1,0 +1,86 @@
+{% load purple_robot %}
+<table class="table">
+	<thead>
+		<tr>
+			<th>Device</th>
+			<th>ID</th>
+			<th>Model</th>
+			<th>Platform</th>
+			<th>App</th>
+			<th class="text-center"><span class="glyphicon glyphicon-export" data-toggle="tooltip" data-placement="top" title="Last Data Upload"></span></th>
+			<th class="text-center"><span class="glyphicon glyphicon-flash" data-toggle="tooltip" data-placement="top" title="Last Observed Battery Level"></span></th>
+			<th class="text-center"><span class="glyphicon glyphicon-level-up" data-toggle="tooltip" data-placement="top" title="No. of Pending Upload Files"></span></th>
+			<th class="text-center"><span class="glyphicon glyphicon-exclamation-sign" data-toggle="tooltip" data-placement="top" title="Error &amp; Warnings"></span></th>
+			<th class="text-center"><span class="glyphicon glyphicon-refresh" data-toggle="tooltip" data-placement="top" title="Last Configuration Refresh"></span></th>
+		</tr>
+	</thead>
+	<tbody>
+		{% for device in group.devices.all %}
+			<tr class="{{ device.status }}">
+				<td><a href="{% url 'pr_device' device.device_id %}">{{ device.name }}</a></td>
+				<td>{{ device.device_id }}</td>
+				<td>{{ device.last_model }}</td>
+				<td>{{ device.last_platform }}</td>
+				<td>{{ device.config_last_user_agent }}</td>
+				<td class="text-center">
+					{% with status=device.last_upload_status %}
+						{% if status == "danger" %}
+							<strong class="text-danger">{% pr_date_ago device.last_upload %}</strong>
+						{% else %}
+							{% if status == "warning" %}
+								<strong class="text-warning">{% pr_date_ago device.last_upload %}</strong>
+							{% else %}
+								{% pr_date_ago device.last_upload %}
+							{% endif %}
+						{% endif %}
+					{% endwith %}
+				</td>
+				<td class="text-center">
+					{% with battery=device.last_battery %}
+						{% if battery < 25 %}
+							<strong class="text-danger">{{ battery }}</strong>
+						{% else %}
+							{% if battery < 33 %}
+								<strong class="text-warning">{{ battery }}</strong>
+							{% else %}
+								{{ battery }}
+							{% endif %}
+						{% endif %}
+					{% endwith %}
+				</td>
+				
+				<td class="text-center">
+					{% with count=device.last_pending_count %}
+						{% if count > 50 %}
+							<strong class="text-danger">{{ device.last_pending_count }}</strong>
+						{% else %}
+							{% if count > 25 %}
+								<strong class="text-warning">{{ device.last_pending_count }}</strong>
+							{% else %}
+								{{ device.last_pending_count }}
+							{% endif %}
+						{% endif %}
+					{% endwith %}
+				</td>
+				<td></td>
+				<td class="text-center">
+					{% with status=device.config_last_fetched_status %}
+						{% if status == "danger" %}
+							<strong class="text-danger">{% pr_date_ago device.config_last_fetched %}</strong>
+						{% else %}
+							{% if status == "warning" %}
+								<strong class="text-warning">{% pr_date_ago device.config_last_fetched %}</strong>
+							{% else %}
+								{% pr_date_ago device.config_last_fetched %}
+							{% endif %}
+						{% endif %}
+					{% endwith %}
+				</td>
+			</tr>
+			{% empty %}
+				<tr>
+					<td colspan="10" class="text-center"><em>No devices are in this group.</em></td>
+				</tr>
+		{% endfor %}
+	</tbody>
+</table>

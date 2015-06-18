@@ -1,4 +1,5 @@
 import datetime
+import gc
 import gzip
 import json
 import tempfile
@@ -56,11 +57,17 @@ class Command(BaseCommand):
                 else:
                     readings = PurpleRobotReading.objects.filter(user_id=user_hash, logged__gte=start, logged__lte=end).order_by('logged')
                     
-                for reading in readings:
-                    payload = json.loads(reading.payload)
-                    
-                    gzf.write(user_hash + '\t' + reading.probe + '\t' + str(reading.logged) + '\t' + json.dumps(payload) + '\n')
-                    
+                count = readings.count()
+                
+                for i in range(0, (count / 500) + 1):
+                    page_start = i * 500
+                    page_end = page_start + 499
+                
+                    for reading in readings[page_start:page_end]:
+                        payload = json.loads(reading.payload)
+                        
+                        gzf.write(user_hash + '\t' + reading.probe + '\t' + str(reading.logged) + '\t' + json.dumps(payload) + '\n')
+
             gzf.flush()
             gzf.close()
                 

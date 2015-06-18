@@ -1,11 +1,114 @@
 {% extends "purple_robot_base.html" %}
+{% load purple_robot %}
 {% block 'title' %}Purple Robot Data Portal{% endblock %}
 {% block 'content' %}
-	<div class="starter-template">
-		<h1>Bootstrap starter template</h1>
-		<p class="lead">Use this document as a way to quickly start any new project.<br> All you get is this text and a mostly barebones HTML document.</p>
+	{% pr_home_custom_console %}
+	<div class="col-md-12">
+		{% for message in pr_messages %}
+			<div class="alert alert-info" role="info" style="margin-top: 10px;">
+				<span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
+				{{ message }}
+			</div>
+		{% endfor %}
+	</div>
+		
+	<div class="col-md-12">
+		{% for group in device_groups %}
+			<h3>{{ group.name }}</h3>
+			{% pr_group_table group.group_id %}
+			<div class="pull-right" style="margin-top: -20px;">
+				<small>
+					<a href="{% url 'pr_add_device' group.group_id %}" id="link_add_device">Add New Device</a>
+					&bull;
+					<a href="#" id="link_add_group">Add New Group</a>
+				</small>
+			</div>
+		{% endfor %}
+	</div>
+	<div class="modal fade" id="modal_add_group" tabindex="-1" role="dialog" aria-labelledby="model_add_group" aria-hidden="true">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+					<h4 class="modal-title" id="modal_alerts_label">Add New Group</h4>
+				</div>
+				<form class="form-horizontal" method="POST" action="{% url 'pr_add_group' %}">
+					{% csrf_token %}
+					<div class="modal-body">
+						<div class="form-group">
+							<label for="label_group_name" class="col-sm-3 control-label text-right">Group Name:</label>
+							<div class="col-sm-9">
+								<input type="text" class="form-control" id="group_name" name="group_name">
+							</div>
+						</div>
+						<div class="form-group">
+							<label for="label_group_id" class="col-sm-3 control-label text-right">Group Identifier:</label>
+							<div class="col-sm-9">
+								<input type="text" class="form-control" id="group_id" name="group_id">
+							</div>
+						</div>
+					</div>
+					<div class="modal-footer">
+						<input type="submit" class="btn btn-primary" value="Add Group" />
+					</div>
+				</form>
+			</div>
+		</div>
+	</div>
+	<div class="modal fade" id="modal_add_device" tabindex="-1" role="dialog" aria-labelledby="model_add_device" aria-hidden="true">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+					<h4 class="modal-title" id="modal_alerts_label">Add New Device</h4>
+				</div>
+				<form class="form-horizontal" method="POST" id="pr_add_device_form">
+					{% csrf_token %}
+					<div class="modal-body">
+						<div class="form-group">
+							<label for="label_device_name" class="col-sm-3 control-label text-right">Device Name:</label>
+							<div class="col-sm-9">
+								<input type="text" class="form-control" id="device_name" name="device_name">
+							</div>
+						</div>
+						<div class="form-group">
+							<label for="label_device_id" class="col-sm-3 control-label text-right">Device Identifier:</label>
+							<div class="col-sm-9">
+								<input type="text" class="form-control" id="device_id" name="device_id">
+							</div>
+						</div>
+					</div>
+					<div class="modal-footer">
+						<input type="submit" class="btn btn-primary" value="Add Device" />
+					</div>
+				</form>
+			</div>
+		</div>
 	</div>
 {% endblock %}
-
 {% block 'page_script' %}
+	$(document).ready(function()
+	{
+		$('[data-toggle="tooltip"]').tooltip();
+		
+		$("a#link_add_group").click(function(eventObj)
+		{
+			eventObj.preventDefault();
+			
+			$("div#modal_add_group").modal("show");
+			
+			return false;
+		});
+		
+		$("a#link_add_device").click(function(eventObj)
+		{
+			eventObj.preventDefault();
+			
+			$("form#pr_add_device_form").attr("action", $(eventObj.target).attr("href"));
+			
+			$("div#modal_add_device").modal("show");
+			
+			return false;
+		});
+	});
 {% endblock %}

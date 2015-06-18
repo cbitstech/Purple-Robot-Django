@@ -3,13 +3,53 @@ import hashlib
 import datetime
 
 from django.contrib.admin.views.decorators import staff_member_required
+from django.core.context_processors import csrf
+from django.core.urlresolvers import reverse
 from django.http import HttpResponse
 from django.shortcuts import render_to_response, get_object_or_404, redirect
 from django.template import RequestContext
+from django.template.loader import render_to_string
 from django.views.decorators.csrf import csrf_exempt
 
 from forms import ExportJobForm
-from models import PurpleRobotPayload, PurpleRobotTest, PurpleRobotEvent, PurpleRobotReport, PurpleRobotExportJob, PurpleRobotReading
+from models import PurpleRobotPayload, PurpleRobotTest, PurpleRobotEvent, \
+                   PurpleRobotReport, PurpleRobotExportJob, PurpleRobotReading, \
+                   PurpleRobotConfiguration, PurpleRobotDevice, PurpleRobotDeviceGroup
+
+def config(request):
+    config = None
+    
+    try:
+        device_id = request.GET['user_id']
+        
+        device = PurpleRobotDevice.objects.get(device_id=device_id)
+        
+        if device.configuration != None:
+            config = device.configuration
+        elif device.device_group.configuration != None:
+            config = device.device_group.configuration
+            
+        device.config_last_fetched = datetime.datetime.now()
+        
+        try:
+            device.config_last_user_agent = request.META['HTTP_USER_AGENT']
+        except KeyError:
+            device.config_last_user_agent = 'Unknown'
+        
+        device.save()
+    except:
+        pass
+        
+    if config == None:
+        config = PurpleRobotConfiguration.objects.get(slug='default')
+        
+    content_type = 'application/json'
+    
+    if config.contents.strip().lower().startswith('(begin'):
+        content_type = 'text/x-scheme'
+        
+    
+    return HttpResponse(config.contents, content_type=content_type)
 
 @csrf_exempt
 def ingest_payload(request):
@@ -159,7 +199,26 @@ def tests_all(request):
 
 @staff_member_required
 def pr_home(request):
-    return render_to_response('purple_robot_home.html')
+    c = RequestContext(request)
+    c.update(csrf(request))
+    
+    if 'pr_messages' in request.session:
+        c['pr_messages'] = request.session['pr_messages']
+        
+        del request.session['pr_messages']
+    
+    c['device_groups'] = PurpleRobotDeviceGroup.objects.all()
+
+    return render_to_response('purple_robot_home.html', c)
+
+@staff_member_required
+def pr_device(request, device_id):
+    c = RequestContext(request)
+    c.update(csrf(request))
+    
+    c['device'] = PurpleRobotDevice.objects.get(device_id=device_id)
+
+    return render_to_response('purple_robot_device.html', c)
 
 
 @staff_member_required
@@ -330,3 +389,42 @@ def create_export_job(request):
             c['form'] = form
 
     return render_to_response('purple_robot_export.html', c)
+    
+@staff_member_required
+def pr_add_group(request):
+    if request.method == 'POST':
+        group_id = request.POST['group_id']
+        group_name = request.POST['group_name']
+        
+        if group_id == None or len(group_id.strip()) == 0 or group_name == None or len(group_id.strip()) == 0:
+            request.session['pr_messages'] = [ 'Please provide a non-empty group name and identifier.' ]
+        elif PurpleRobotDeviceGroup.objects.filter(group_id=group_id).count() == 0:
+            group = PurpleRobotDeviceGroup(group_id=group_id, name=group_name)
+            
+            group.save()
+        else:
+            request.session['pr_messages'] = [ 'Unable to create group. A group already exists with identifier "' + group_id + '".' ]
+    
+    return redirect(reverse('pr_home'))
+
+@staff_member_required
+def pr_add_device(request, group_id):
+    group = PurpleRobotDeviceGroup.objects.filter(group_id=group_id).first()
+
+    if group != None:
+        if request.method == 'POST':
+            device_id = request.POST['device_id']
+            device_name = request.POST['device_name']
+
+            if device_id == None or len(device_id.strip()) == 0 or device_name == None or len(device_name.strip()) == 0:
+                request.session['pr_messages'] = [ 'Please provide a non-empty device name and identifier.' ]
+            elif PurpleRobotDevice.objects.filter(device_id=device_id).count() == 0:
+                device = PurpleRobotDevice(device_id=device_id, name=device_name, device_group=group)
+
+                device.save()
+            else:
+                request.session['pr_messages'] = [ 'Unable to create device. A device already exists with identifier "' + device_id + '".' ]
+    else:
+        request.session['pr_messages'] = [ 'Unable to locate group with identifier "' + group_id + '" and create new device.' ]
+    
+    return redirect(reverse('pr_home'))
