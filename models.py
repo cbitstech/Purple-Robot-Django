@@ -13,7 +13,6 @@ from django.dispatch.dispatcher import receiver
 from django.utils import timezone
 from django.utils.safestring import SafeString
 
-
 class PurpleRobotConfiguration(models.Model):
     name = models.CharField(max_length=1024)
     slug = models.CharField(max_length=1024, unique=True, db_index=True)
@@ -40,7 +39,7 @@ class PurpleRobotConfiguration(models.Model):
             return 'Scheme'
             
         return 'JSON';
-    
+
 class PurpleRobotDeviceGroup(models.Model):
     name = models.CharField(max_length=1024)
     group_id = models.SlugField(max_length=256, unique=True)
