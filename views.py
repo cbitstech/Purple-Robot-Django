@@ -94,25 +94,30 @@ def ingest_payload_print(request):
 
 @csrf_exempt
 def log_event(request):
-    payload = json.loads(request.POST['json'])
+    try:
+        payload = json.loads(request.POST['json'])
     
-    logged = datetime.datetime.fromtimestamp(int(payload['timestamp']))
+        logged = datetime.datetime.fromtimestamp(int(payload['timestamp']))
     
-    if PurpleRobotEvent.objects.filter(logged=logged, event=payload['event_type']).count() == 0:
-        try:
-            if len(payload['user_id'].strip()) == 0:
+        if PurpleRobotEvent.objects.filter(logged=logged, event=payload['event_type']).count() == 0:
+            try:
+                if len(payload['user_id'].strip()) == 0:
+                    payload['user_id'] = '-'
+            except KeyError:
                 payload['user_id'] = '-'
-        except KeyError:
-            payload['user_id'] = '-'
         
-        event = PurpleRobotEvent(payload=json.dumps(payload, indent=2))
-        event.logged = logged
-        event.event = payload['event_type']
-        event.user_id = payload['user_id']
+            event = PurpleRobotEvent(payload=json.dumps(payload, indent=2))
+            event.logged = logged
+            event.event = payload['event_type']
+            event.user_id = payload['user_id']
         
-        event.save()
+            event.save()
     
-    return HttpResponse(json.dumps({ 'result': 'success' }), content_type='application/json')
+        return HttpResponse(json.dumps({ 'result': 'success' }), content_type='application/json')
+    except UnreadablePostError:
+        return HttpResponse(json.dumps({ 'result': 'error', 'message': 'Unreadable POST request' }), content_type='application/json')
+
+    return HttpResponse(json.dumps({ 'result': 'error', 'message': 'Unknown error' }), content_type='application/json')
 
 @staff_member_required
 def test_report(request, slug):
