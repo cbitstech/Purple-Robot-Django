@@ -9,7 +9,9 @@ from django.template import RequestContext
 from django.views.decorators.csrf import csrf_exempt
 
 from forms import ExportJobForm
-from models import PurpleRobotPayload, PurpleRobotTest, PurpleRobotEvent, PurpleRobotReport, PurpleRobotExportJob, PurpleRobotReading
+from models import PurpleRobotPayload, PurpleRobotTest, PurpleRobotEvent, \
+                   PurpleRobotReport, PurpleRobotExportJob, PurpleRobotReading, \
+                   PurpleRobotConfiguration, PurpleRobotDevice, PurpleRobotDeviceGroup
 
 def config(request):
     config = None
@@ -193,8 +195,19 @@ def tests_all(request):
 
 @staff_member_required
 def pr_home(request):
-    return render_to_response('purple_robot_home.html')
+    c = RequestContext(request)
+    
+    c['device_groups'] = PurpleRobotDeviceGroup.objects.all()
 
+    return render_to_response('purple_robot_home.html', c)
+
+@staff_member_required
+def pr_device(request, device_id):
+    c = RequestContext(request)
+    
+    c['device'] = PurpleRobotDevice.objects.get(device_id=device_id)
+
+    return render_to_response('purple_robot_device.html', c)
 
 @staff_member_required
 def pr_by_probe(request):
