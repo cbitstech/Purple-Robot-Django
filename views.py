@@ -423,3 +423,22 @@ def pr_add_device(request, group_id):
         request.session['pr_messages'] = [ 'Unable to locate group with identifier "' + group_id + '" and create new device.' ]
     
     return redirect(reverse('pr_home'))
+
+@staff_member_required
+def pr_configurations(request):
+    c = RequestContext(request)
+    c.update(csrf(request))
+    
+    c['configurations'] = PurpleRobotConfiguration.objects.all()
+        
+    return render_to_response('purple_robot_configurations.html', c)
+
+
+@staff_member_required
+def pr_configuration(request, config_id):
+    c = RequestContext(request)
+    c.update(csrf(request))
+
+    c['config'] = get_object_or_404(PurpleRobotConfiguration, slug=config_id)
+
+    return render_to_response('purple_robot_configuration.html', c)

@@ -1,0 +1,54 @@
+{% extends "purple_robot_base.html" %}
+{% load purple_robot %}
+{% load static %}
+{% block 'title' %}{{ config.name }}{% endblock %}
+{% block 'content' %}
+	<div class="col-md-12">
+		<h1>{{ config.name }}</h1>
+	</div>
+	<div class="col-md-2">
+		<!-- Nav tabs -->
+		<ul class="nav nav-pills nav-stacked">
+			<li role="presentation" class="active"><a href="#general" data-toggle="tab">General Settings</a></li>
+			<li role="presentation"><a href="#network" data-toggle="tab">Network</a></li>
+			<li role="presentation"><a href="#probes" data-toggle="tab">Probes</a></li>
+			<li role="presentation"><a href="#triggers" data-toggle="tab">Triggers</a></li>
+			<li role="presentation"><a href="#models" data-toggle="tab">Models</a></li>
+		</ul>
+	</div>
+	<div class="col-md-6">
+		<div class="tab-content">
+			<div role="tabpanel" class="tab-pane active" id="general">
+				<h4>Snapshots</h4>
+				<h4>Notifications</h4>
+				<h4>Appearance</h4>
+				<h4>Configuration</h4>
+			</div>
+			<div role="tabpanel" class="tab-pane" id="network">
+				<h4>Data Upload</h4>
+				<h5>Adaptive Uploader</h5>
+				<h5>JSON Uploader</h5>
+
+				<h4>Logging</h4>
+
+				<h4>Built-In HTTP Server</h4>
+			</div>
+			<div role="tabpanel" class="tab-pane" id="probes">
+				<p>[Enable Probes]</p>
+				<h4>Category A</h4>
+				<h4>Category B</h4>
+				<h4>Category C</h4>
+				<h4>Category D</h4>
+			</div>
+			<div role="tabpanel" class="tab-pane" id="triggers">
+				<p>[+ Trigger]</p>
+			</div>
+			<div role="tabpanel" class="tab-pane" id="models">
+				<p>[+ Model]</p>
+			</div>
+		</div>
+	</div>
+	<div class="col-md-4">
+		<h5>Configuration Inspector</h5>
+	</div>
+{% endblock %}

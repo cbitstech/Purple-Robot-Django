@@ -1,0 +1,34 @@
+{% extends "purple_robot_base.html" %}
+{% load purple_robot %}
+{% load static %}
+{% block 'title' %}Configurations{% endblock %}
+{% block 'content' %}
+	<div class="col-md-12">
+		<h3 id="toolbar_events" style="margin: 0; padding: 0;">Purple Robot Configurations</h3>
+		
+		<table class="table" data-toggle="table" data-pagination="true" data-search="true" data-toolbar="#toolbar_events">
+			<thead>
+				<tr>
+					<th>Name</th>
+					<th>Identifier</th>
+					<th>Format</th>
+					<th>Added</th>
+					<th>Groups</th>
+					<th>Devices</th>
+				</tr>
+			</thead>
+			<tbody>
+				{% for configuration in configurations %}
+					<tr>
+						<td><a href="{% url 'pr_configuration' configuration.slug %}">{{ configuration.name }}</a></td>
+						<td>{{ configuration.slug }}</td>
+						<td>{{ configuration.format }}</td>
+						<td>{{ configuration.added }}</td>
+						<td>{{ configuration.groups.count }}</td>
+						<td>{{ configuration.device_count }}</td>
+					</tr>
+				{% endfor %}
+			</tbody>
+		</table>
+	</div>
+{% endblock %}

@@ -23,6 +23,24 @@ class PurpleRobotConfiguration(models.Model):
     def __unicode__(self):
         return self.name
     
+    def device_count(self):
+        identifiers = set()
+        
+        for group in self.groups.all():
+            for device in group.devices.all():
+                identifiers.add(device.device_id)
+                
+        for device in self.devices.all():
+            identifiers.add(device.device_id)
+            
+        return len(identifiers)
+        
+    def format(self):
+        if self.contents.lower().startswith('(begin'):
+            return 'Scheme'
+            
+        return 'JSON';
+    
 class PurpleRobotDeviceGroup(models.Model):
     name = models.CharField(max_length=1024)
     group_id = models.SlugField(max_length=256, unique=True)
