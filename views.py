@@ -3,53 +3,13 @@ import hashlib
 import datetime
 
 from django.contrib.admin.views.decorators import staff_member_required
-from django.core.context_processors import csrf
-from django.core.urlresolvers import reverse
-from django.http import HttpResponse
+from django.http import HttpResponse, UnreadablePostError
 from django.shortcuts import render_to_response, get_object_or_404, redirect
 from django.template import RequestContext
-from django.template.loader import render_to_string
 from django.views.decorators.csrf import csrf_exempt
 
 from forms import ExportJobForm
-from models import PurpleRobotPayload, PurpleRobotTest, PurpleRobotEvent, \
-                   PurpleRobotReport, PurpleRobotExportJob, PurpleRobotReading, \
-                   PurpleRobotConfiguration, PurpleRobotDevice, PurpleRobotDeviceGroup
-
-def config(request):
-    config = None
-    
-    try:
-        device_id = request.GET['user_id']
-        
-        device = PurpleRobotDevice.objects.get(device_id=device_id)
-        
-        if device.configuration != None:
-            config = device.configuration
-        elif device.device_group.configuration != None:
-            config = device.device_group.configuration
-            
-        device.config_last_fetched = datetime.datetime.now()
-        
-        try:
-            device.config_last_user_agent = request.META['HTTP_USER_AGENT']
-        except KeyError:
-            device.config_last_user_agent = 'Unknown'
-        
-        device.save()
-    except:
-        pass
-        
-    if config == None:
-        config = PurpleRobotConfiguration.objects.get(slug='default')
-        
-    content_type = 'application/json'
-    
-    if config.contents.strip().lower().startswith('(begin'):
-        content_type = 'text/x-scheme'
-        
-    
-    return HttpResponse(config.contents, content_type=content_type)
+from models import PurpleRobotPayload, PurpleRobotTest, PurpleRobotEvent, PurpleRobotReport, PurpleRobotExportJob, PurpleRobotReading
 
 @csrf_exempt
 def ingest_payload(request):
@@ -134,25 +94,30 @@ def ingest_payload_print(request):
 
 @csrf_exempt
 def log_event(request):
-    payload = json.loads(request.POST['json'])
+    try:
+        payload = json.loads(request.POST['json'])
     
-    logged = datetime.datetime.fromtimestamp(int(payload['timestamp']))
+        logged = datetime.datetime.fromtimestamp(int(payload['timestamp']))
     
-    if PurpleRobotEvent.objects.filter(logged=logged, event=payload['event_type']).count() == 0:
-        try:
-            if len(payload['user_id'].strip()) == 0:
+        if PurpleRobotEvent.objects.filter(logged=logged, event=payload['event_type']).count() == 0:
+            try:
+                if len(payload['user_id'].strip()) == 0:
+                    payload['user_id'] = '-'
+            except KeyError:
                 payload['user_id'] = '-'
-        except KeyError:
-            payload['user_id'] = '-'
         
-        event = PurpleRobotEvent(payload=json.dumps(payload, indent=2))
-        event.logged = logged
-        event.event = payload['event_type']
-        event.user_id = payload['user_id']
+            event = PurpleRobotEvent(payload=json.dumps(payload, indent=2))
+            event.logged = logged
+            event.event = payload['event_type']
+            event.user_id = payload['user_id']
         
-        event.save()
+            event.save()
     
-    return HttpResponse(json.dumps({ 'result': 'success' }), content_type='application/json')
+        return HttpResponse(json.dumps({ 'result': 'success' }), content_type='application/json')
+    except UnreadablePostError:
+        return HttpResponse(json.dumps({ 'result': 'error', 'message': 'Unreadable POST request' }), content_type='application/json')
+
+    return HttpResponse(json.dumps({ 'result': 'error', 'message': 'Unknown error' }), content_type='application/json')
 
 @staff_member_required
 def test_report(request, slug):
@@ -194,26 +159,7 @@ def tests_all(request):
 
 @staff_member_required
 def pr_home(request):
-    c = RequestContext(request)
-    c.update(csrf(request))
-    
-    if 'pr_messages' in request.session:
-        c['pr_messages'] = request.session['pr_messages']
-        
-        del request.session['pr_messages']
-    
-    c['device_groups'] = PurpleRobotDeviceGroup.objects.all()
-
-    return render_to_response('purple_robot_home.html', c)
-
-@staff_member_required
-def pr_device(request, device_id):
-    c = RequestContext(request)
-    c.update(csrf(request))
-    
-    c['device'] = PurpleRobotDevice.objects.get(device_id=device_id)
-
-    return render_to_response('purple_robot_device.html', c)
+    return render_to_response('purple_robot_home.html')
 
 
 @staff_member_required
