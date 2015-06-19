@@ -303,7 +303,12 @@ class PurpleRobotDevice(models.Model):
             start_ts = time.mktime(start.timetuple())
             end_ts = time.mktime(end.timetuple())
             
-            history_point = { 'size': size['size__sum'], 'timestamp':  ((start_ts + end_ts) / 2) }
+            total_size = size['size__sum']
+            
+            if total_size == None:
+                total_size = 0
+            
+            history_point = { 'size': total_size, 'timestamp':  ((start_ts + end_ts) / 2) }
             
             size_history.append(history_point)
             
