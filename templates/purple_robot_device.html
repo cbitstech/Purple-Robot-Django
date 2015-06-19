@@ -25,6 +25,9 @@
 		<h3>Pending Files</h3>
 		<div id="pending_chart" style="border: 1px solid #808080; height: 180px; width: 100%; overflow: hidden;"></div>
 
+		<h3>Data Generated</h3>
+		<div id="upload_chart" style="border: 1px solid #808080; height: 180px; width: 100%; overflow: hidden;"></div>
+
 		<h3>Probes</h3>
 		<table class="table">
 			<thead>
@@ -321,5 +324,85 @@
 		});
 		
 		pendingGraph.render();
+		
+		var uploadSeries = [];
+		
+		{% for reading in device.data_size_history %}
+			uploadSeries.push({ "y": {{ reading.size }}, "x": ({{ reading.timestamp }} - (12 * 60 * 60)) });
+		{% endfor %}
+
+		var uploadGraph = new Rickshaw.Graph( {
+			element: document.getElementById("upload_chart"),
+			height: 180,
+			width: $("div#upload_chart").width(),
+			renderer: 'bar',
+			series: [
+				{
+					color: "#58B957",
+					data: uploadSeries,
+					name: 'Uploaded Bytes'
+				}
+			],
+			padding: { top: 0.25, bottom: 0.25 }
+		});
+		
+		var offset = new Date().getTimezoneOffset();
+		
+		alert("OFFSET: " + offset);
+
+		timeUnit = {
+			'name': '1 day', 
+			'seconds': 3600 * 24,
+			'formatter': function(d)
+			{ 
+				return moment(d).format('MMMM Do YYYY');
+			}
+		};
+
+		x_axis = new Rickshaw.Graph.Axis.Time({ 
+			graph: uploadGraph, 
+			timeUnit: timeUnit
+		});
+		
+		x_axis.tickOffsets = function() {
+			var domain = this.graph.x.domain();
+			
+			var time = Rickshaw.Fixtures.Time();
+
+			var unit = this.fixedTimeUnit || this.appropriateTimeUnit();
+			var count = Math.ceil((domain[1] - domain[0]) / unit.seconds);
+
+			var runningTick = domain[0];
+
+			var offsets = [];
+
+			for (var i = 0; i < count; i++) {
+				var tickValue = Math.ceil(runningTick / unit.seconds) * unit.seconds
+
+				runningTick = tickValue + unit.seconds / 2;
+
+				offsets.push( { value: tickValue + (offset * 60), unit: unit } );
+			}
+
+			return offsets;
+		};
+
+		hoverDetail = new Rickshaw.Graph.HoverDetail( {
+			graph: uploadGraph,
+			onShow: function(event)
+			{
+				var text = $(".x_label").text();
+				var parenIndex = text.indexOf(")");
+				text = text.substring(0, parenIndex + 1);
+			},
+			xFormatter: function(x)
+			{ 
+				var date = new Date (x * 1000);
+				return "" + date 
+			},
+			yFormatter: function(y) { return (y / (1024 * 1024)).toFixed(2) + " MB" }
+		});
+		
+		uploadGraph.render();
 	});
 {% endblock %}

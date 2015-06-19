@@ -8,6 +8,7 @@ import time
 
 from django.core.urlresolvers import reverse
 from django.db import models
+from django.db.models import Sum
 from django.db.models.signals import pre_delete
 from django.dispatch.dispatcher import receiver
 from django.utils import timezone
@@ -69,7 +70,6 @@ class PurpleRobotDevice(models.Model):
             
             self.hash_key = m.hexdigest()
             self.save()
-
         
     def last_upload(self):
         self.init_hash()
@@ -259,6 +259,59 @@ class PurpleRobotDevice(models.Model):
             readings.append(reading)
         
         return sorted(readings, key=lambda k: k['last_update'], reverse=True) 
+        
+    def data_size_history(self, unit='day', count=None):
+        now = timezone.localtime(timezone.now())
+        
+        bin_size = None
+        count = 0
+        
+        if unit == 'day':
+            bin_size = datetime.timedelta(days=1)
+            end = datetime.datetime(now.year, now.month, now.day, 0, 0, 0, 0, now.tzinfo)
+            end = end + bin_size
+            count = 7
+        elif unit == 'hour':
+            bin_size = datetime.timedelta(seconds=(60 * 60))
+            end = datetime.datetime(now.year, now.month, now.day, now.hour, 0, 0, 0, now.tzinfo)
+            end = end + in_size
+            count = 48
+        elif unit == 'minute':
+            bin_size = datetime.timedelta(seconds=60)
+            end = datetime.datetime(now.year, now.month, now.day, now.hour, now.minute, 0, 0, now.tzinfo)
+            end = end + datetime.timedelta(seconds=60)
+            count = 240
+            
+        size_history = []
+        
+        while count > 0:
+            start = end - bin_size
+            
+            size = 0
+            
+            readings = PurpleRobotReading.objects.filter(user_id=self.hash_key, logged__gte=start, logged__lt=end, size=0)[:250]
+            
+            while readings.count() > 0:
+                for reading in readings:
+                    reading.size = len(reading.payload)
+                    reading.save()
+                
+                readings = PurpleRobotReading.objects.filter(user_id=self.hash_key, logged__gte=start, logged__lt=end, size=0)[:250]
+                
+            size = PurpleRobotReading.objects.filter(user_id=self.hash_key, logged__gte=start, logged__lt=end).aggregate(Sum('size'))
+            
+            start_ts = time.mktime(start.timetuple())
+            end_ts = time.mktime(end.timetuple())
+            
+            history_point = { 'size': size['size__sum'], 'timestamp':  ((start_ts + end_ts) / 2) }
+            
+            size_history.append(history_point)
+            
+            end = start
+            count -= 1
+            
+            
+        return reversed(size_history)
 
     def events(self, start=None, end=None):
         self.init_hash()
@@ -323,6 +376,7 @@ class PurpleRobotReading(models.Model):
     payload = models.TextField(max_length=8388608)
     logged = models.DateTimeField()
     guid = models.CharField(max_length=1024, db_index=True, null=True, blank=True)
+    size = models.IntegerField(default=0)
     
 EXPORT_JOB_STATE_CHOICES = (
     ('pending', 'Pending'),
