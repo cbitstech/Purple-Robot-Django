@@ -70,6 +70,11 @@ class PurpleRobotDevice(models.Model):
             
             self.hash_key = m.hexdigest()
             self.save()
+
+    def user_hash(self, start=None, end=None):
+        self.init_hash()
+        
+        return self.hash_key
         
     def last_upload(self):
         self.init_hash()
@@ -242,7 +247,7 @@ class PurpleRobotDevice(models.Model):
             
         return None
         
-    def last_readings(self):
+    def last_readings(self, omit_readings=False):
         self.init_hash()
 
         readings = []
@@ -251,10 +256,17 @@ class PurpleRobotDevice(models.Model):
             reading = {}
             
             reading['name'] = item.probe.split('.')[-1]
+            reading['full_probe_name'] = item.probe
             reading['last_update'] = item.logged
-            reading['num_readings'] = PurpleRobotReading.objects.filter(user_id=self.hash_key, probe=item.probe).count()
-            reading['frequency'] = 'TODO'
-            reading['status'] = 'TODO'
+            
+            if omit_readings == False:
+                reading['num_readings'] = PurpleRobotReading.objects.filter(user_id=self.hash_key, probe=item.probe).count()
+                reading['status'] = 'TODO'
+
+                reading['frequency'] = 'Unknown'
+                
+                for test in PurpleRobotTest.objects.filter(probe=item.probe, user_id=self.hash_key):
+                    reading['frequency'] = test.average_frequency
             
             readings.append(reading)
         
@@ -593,30 +605,33 @@ class PurpleRobotTest(models.Model):
     def max_gap_size(self):
         report = json.loads(self.report)
         
-        readings = report['target']
+        if 'target' in report:
+            readings = report['target']
         
-        timestamps = []
+            timestamps = []
         
-        for reading in readings:
-            timestamps.append(reading[0])
+            for reading in readings:
+                timestamps.append(reading[0])
         
-        if len(timestamps) <= 1:
-            return 0
+            if len(timestamps) <= 1:
+                return 0
         
-        timestamps.sort()
+            timestamps.sort()
         
-        max_gap = 0
+            max_gap = 0
         
-        for i in range(0, len(timestamps) - 1):
-            one = timestamps[i]
-            two = timestamps[i + 1]
+            for i in range(0, len(timestamps) - 1):
+                one = timestamps[i]
+                two = timestamps[i + 1]
             
-            gap = two - one
+                gap = two - one
            
-            if gap > max_gap:
-                max_gap = gap
+                if gap > max_gap:
+                    max_gap = gap
               
-        return max_gap
+            return max_gap
+        
+        return -1
         
     def frequency_graph_json(self, indent=0):
         report = json.loads(self.report)
@@ -680,15 +695,16 @@ class PurpleRobotTest(models.Model):
     def last_recorded_sample(self):
         report = json.loads(self.report)
         
-        readings = report['target']
+        if 'target' in report:
+            readings = report['target']
         
-        timestamps = []
+            timestamps = []
         
-        for reading in readings:
-            timestamps.append(reading[0])
+            for reading in readings:
+                timestamps.append(reading[0])
         
-        if len(timestamps) > 0:
-            return datetime.datetime.fromtimestamp(timestamps[-1])
+            if len(timestamps) > 0:
+                return datetime.datetime.fromtimestamp(timestamps[-1])
         
         return None
         

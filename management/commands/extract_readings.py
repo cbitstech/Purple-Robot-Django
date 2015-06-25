@@ -18,26 +18,29 @@ class Command(BaseCommand):
         
         payloads = PurpleRobotPayload.objects.exclude(process_tags__contains=tag)[:250]
         
-        for payload in payloads:
-            items = json.loads(payload.payload)
+        while payloads.count() > 0:
+            for payload in payloads:
+                items = json.loads(payload.payload)
 
-            for item in items:
-                reading = PurpleRobotReading(probe=item['PROBE'], user_id=payload.user_id)
-                reading.payload = json.dumps(item, indent=2)
-                reading.logged = datetime.datetime.utcfromtimestamp(item['TIMESTAMP']).replace(tzinfo=pytz.utc)
+                for item in items:
+                    reading = PurpleRobotReading(probe=item['PROBE'], user_id=payload.user_id)
+                    reading.payload = json.dumps(item, indent=2)
+                    reading.logged = datetime.datetime.utcfromtimestamp(item['TIMESTAMP']).replace(tzinfo=pytz.utc)
                     
-                reading.save()
+                    reading.save()
                 
-            tags = payload.process_tags
+                tags = payload.process_tags
                 
-            if tags is None or tags.find(tag) == -1:
-                if tags is None or len(tags) == 0:
-                    tags = tag
-                else:
-                    tags += ' ' + tag
+                if tags is None or tags.find(tag) == -1:
+                    if tags is None or len(tags) == 0:
+                        tags = tag
+                    else:
+                        tags += ' ' + tag
                         
-                payload.process_tags = tags
+                    payload.process_tags = tags
                     
-                payload.save()
+                    payload.save()
+                    
+            payloads = PurpleRobotPayload.objects.exclude(process_tags__contains=tag)[:250]
 
         os.remove('/tmp/extracted_readings.lock')

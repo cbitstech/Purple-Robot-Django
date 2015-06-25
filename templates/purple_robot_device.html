@@ -45,7 +45,7 @@
 						<td>{{ reading.name }}</th>
 						<td class="text-center">{% pr_date_ago reading.last_update %}</td>
 						<td class="text-center">{{ reading.num_readings }}</td>
-						<td class="text-center">{{ reading.frequency }}</td>
+						<td class="text-center">{% pr_frequency reading.frequency %}</td>
 						<td class="text-center">{{ reading.status }}</td>
 					</tr>
 				{% endfor %}

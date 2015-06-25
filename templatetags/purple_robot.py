@@ -145,4 +145,54 @@ class DateAgoNode(template.Node):
         
         return render_to_string('tag_pr_date_ago.html', context)
         
+
+@register.tag(name="pr_frequency")
+def tag_pr_frequency(parser, token):
+    try:
+        tag_name, frequency = token.split_contents()
+    except ValueError:
+        raise template.TemplateSyntaxError("%r tag requires a single argument" % token.contents.split()[0])
+
+    return FrequencyNode(frequency)
+
+class FrequencyNode(template.Node):
+    def __init__(self, frequency):
+        self.frequency = template.Variable(frequency)
+
+    def render(self, context):
+        frequency = self.frequency.resolve(context)
+        
+        if frequency == None:
+            return 'None'
+
+        value = "{:10.3f}".format(frequency) + " Hz"
+        tooltip = "{:10.3f}".format(frequency) + " samples per second"
+        
+        if frequency < 1.0:
+            frequency *= 60
+            
+            if frequency > 1.0:
+                tooltip = "{:10.3f}".format(frequency) + " samples per minute"
+            else:
+                frequency *= 60
+            
+                if frequency > 1.0:
+                    tooltip = "{:10.3f}".format(frequency) + " samples per hour"
+                else:
+                    frequency *= 24
+            
+                    if frequency > 1.0:
+                        tooltip = "{:10.3f}".format(frequency) + " samples per day"
+                    else:
+                        frequency *= 7
+            
+                        tooltip = "{:10.3f}".format(frequency) + " samples per week"
+
+        context['value'] = value
+        context['tooltip'] = tooltip
+        
+        return render_to_string('tag_pr_frequency.html', context)
+#        
+#        return render_to_string('tag_pr_date_ago.html', context)
+        
         
