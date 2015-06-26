@@ -8,16 +8,29 @@
 		<h1>{{ device.name }}</h1>
 	</div>
 	<div class="col-md-9">
-		<div class="alert alert-danger" role="alert">
-			<span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
-			<span class="sr-only">Alert:</span>
-			Alerts have not yet been defined properly (todo).
-		</div>
-		<div class="alert alert-warning" role="alert">
-			<span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
-			<span class="sr-only">Warning:</span>
-			Warnings have not yet been defined properly (todo).
-		</div>
+		{% for alert in device.alerts %}
+			{% if alert.severity == 2 %}
+				<div class="alert alert-danger" role="alert">
+					<span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
+					<span class="sr-only">Alert:</span>
+					{{ alert.message }}
+				</div>
+			{% else %}
+				{% if alert.severity == 1 %}
+					<div class="alert alert-warning" role="alert">
+						<span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span>
+						<span class="sr-only">Alert:</span>
+						{{ alert.message }}
+					</div>
+				{% else %}
+					<div class="alert alert-info" role="alert">
+						<span class="glyphicon glyphicon-info-sign" aria-hidden="true"></span>
+						<span class="sr-only">Alert:</span>
+						{{ alert.message }}
+					</div>
+				{% endif %}
+			{% endif %}
+		{% endfor %}
 
 		<h3>Battery History</h3>
 		<div id="battery_chart" style="border: 1px solid #808080; height: 180px; width: 100%; overflow: hidden;"></div>

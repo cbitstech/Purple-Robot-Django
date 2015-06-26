@@ -160,14 +160,16 @@ class PurpleRobotDevice(models.Model):
     def status(self):
         statuses = []
         
+        severity = self.alert_severity()
+        
         statuses.append(self.last_upload_status())
         statuses.append(self.config_last_fetched_status())
         statuses.append(self.last_battery_status())
         
-        if 'danger' in statuses:
+        if severity > 1:
             return 'danger'
 
-        if 'warning' in statuses:
+        if severity > 0:
             return 'warning'
             
         return 'ok'
@@ -342,6 +344,23 @@ class PurpleRobotDevice(models.Model):
             end = now
             
         return PurpleRobotEvent.objects.filter(user_id=self.hash_key, logged__gte=start, logged__lte=end).order_by('-logged')
+        
+    def alerts(self):
+        self.init_hash()
+        
+        return PurpleRobotAlert.objects.filter(dismissed=None, user_id=self.hash_key)
+        
+    def alert_count(self):
+        return self.alerts().count()
+        
+    def alert_severity(self):
+        severity = 0
+        
+        for alert in self.alerts():
+            if alert.severity > severity:
+                severity = alert.severity
+                
+        return severity
 
 class PurpleRobotPayload(models.Model):
     added = models.DateTimeField(auto_now_add=True)
@@ -711,3 +730,17 @@ class PurpleRobotTest(models.Model):
     def probe_name(self):
         return string.replace(self.probe, 'edu.northwestern.cbits.purple_robot_manager.probes.', '')    
         
+
+class PurpleRobotAlert(models.Model):
+    severity = models.IntegerField(default=0)
+    message = models.CharField(max_length=2048)
+    tags = models.CharField(max_length=2048, null=True, blank=True)
+    
+    action_url = models.URLField(max_length=1024, null=True, blank=True)
+    
+    probe = models.CharField(max_length=1024, null=True, blank=True)
+    user_id = models.CharField(max_length=1024, null=True, blank=True)
+    generated = models.DateTimeField()
+    dismissed = models.DateTimeField(null=True, blank=True)
+    
+    manually_dismissed = models.BooleanField(default=False)

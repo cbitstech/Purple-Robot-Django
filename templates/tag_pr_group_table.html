@@ -62,7 +62,7 @@
 						{% endif %}
 					{% endwith %}
 				</td>
-				<td></td>
+				<td class="text-center">{% pr_device_alerts device.hash_key %}</td>
 				<td class="text-center">
 					{% with status=device.config_last_fetched_status %}
 						{% if status == "danger" %}

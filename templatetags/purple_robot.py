@@ -7,7 +7,7 @@ from django.template.defaultfilters import stringfilter
 from django.template.loader import render_to_string
 from django.utils import timezone
 
-from purple_robot_app.models import PurpleRobotDeviceGroup
+from purple_robot_app.models import PurpleRobotDeviceGroup, PurpleRobotAlert
 
 register = template.Library()
 
@@ -192,6 +192,56 @@ class FrequencyNode(template.Node):
         context['tooltip'] = tooltip
         
         return render_to_string('tag_pr_frequency.html', context)
+#        
+#        return render_to_string('tag_pr_date_ago.html', context)
+        
+        
+
+@register.tag(name="pr_device_alerts")
+def tag_pr_device_alerts(parser, token):
+    try:
+        tag_name, user_id = token.split_contents()
+    except ValueError:
+        raise template.TemplateSyntaxError("%r tag requires a single argument" % token.contents.split()[0])
+
+    return DeviceAlertsNode(user_id)
+
+class DeviceAlertsNode(template.Node):
+    def __init__(self, user_id):
+        self.user_id = template.Variable(user_id)
+
+    def render(self, context):
+        user_id = self.user_id.resolve(context)
+        
+        alerts = PurpleRobotAlert.objects.filter(user_id=user_id).order_by('-severity')
+        
+        tooltip = 'No alerts.'
+        
+        severity = 0
+        
+        if alerts.count() > 0:
+            tooltip = ''
+            
+            for alert in alerts:
+                if len(tooltip) > 0:
+                    tooltip += '\n'
+                
+                tooltip += alert.message
+                
+                if alert.severity > severity:
+                    severity = alert.severity
+                    
+        if severity > 1:
+            context['class'] = 'text-danger'
+        elif severity > 1:
+            context['class'] = 'text-warning'
+        else:
+            context['class'] = ''
+
+        context['value'] = alerts.count()
+        context['tooltip'] = tooltip
+        
+        return render_to_string('tag_pr_device_alerts.html', context)
 #        
 #        return render_to_string('tag_pr_date_ago.html', context)
         
