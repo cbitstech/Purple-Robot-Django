@@ -74,7 +74,7 @@ class Command(BaseCommand):
         
         for command_name in command_names:
             if command_name.startswith('pr_status_check_'):
-                print('Running: ' + command_name)
+                # print('Running: ' + command_name)
                 call_command(command_name)
 
         os.remove('/tmp/check_status.lock')
