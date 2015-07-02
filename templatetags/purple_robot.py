@@ -164,6 +164,8 @@ class FrequencyNode(template.Node):
         
         if frequency == None:
             return 'None'
+        elif frequency == 'Unknown':
+            return frequency
 
         value = "{:10.3f}".format(frequency) + " Hz"
         tooltip = "{:10.3f}".format(frequency) + " samples per second"
