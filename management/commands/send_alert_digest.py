@@ -33,6 +33,5 @@ class Command(BaseCommand):
                     text_content += "{0}. {1} \n".format(count, alert.message)
                 count += 1
 
-            print text_content
             send_mail(subject, text_content, from_email, recipient_list, fail_silently=False)
             
