@@ -162,10 +162,6 @@ class PurpleRobotDevice(models.Model):
         
         severity = self.alert_severity()
         
-        statuses.append(self.last_upload_status())
-        statuses.append(self.config_last_fetched_status())
-        statuses.append(self.last_battery_status())
-        
         if severity > 1:
             return 'danger'
 

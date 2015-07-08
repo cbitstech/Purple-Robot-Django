@@ -215,7 +215,7 @@ class DeviceAlertsNode(template.Node):
     def render(self, context):
         user_id = self.user_id.resolve(context)
         
-        alerts = PurpleRobotAlert.objects.filter(user_id=user_id).order_by('-severity')
+        alerts = PurpleRobotAlert.objects.filter(user_id=user_id, dismissed=None).order_by('-severity')
         
         tooltip = 'No alerts.'
         
