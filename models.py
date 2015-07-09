@@ -365,6 +365,32 @@ class PurpleRobotPayload(models.Model):
     user_id = models.CharField(max_length=1024, db_index=True)
 
     errors = models.TextField(max_length=65536, null=True, blank=True)
+    
+    def ingest_readings(self):
+        tag = 'extracted_readings'
+        
+        items = json.loads(self.payload)
+
+        for item in items:
+            reading = PurpleRobotReading(probe=item['PROBE'], user_id=self.user_id)
+            reading.payload = json.dumps(item, indent=2)
+            reading.logged = datetime.datetime.utcfromtimestamp(item['TIMESTAMP']).replace(tzinfo=pytz.utc)
+            reading.guid = item['GUID']
+            
+            reading.save()
+        
+        tags = self.process_tags
+        
+        if tags is None or tags.find(tag) == -1:
+            if tags is None or len(tags) == 0:
+                tags = tag
+            else:
+                tags += ' ' + tag
+                
+            self.process_tags = tags
+            
+            self.save()
+    
 
 class PurpleRobotEvent(models.Model):
     event = models.CharField(max_length=1024)
@@ -409,6 +435,20 @@ class PurpleRobotReading(models.Model):
     logged = models.DateTimeField()
     guid = models.CharField(max_length=1024, db_index=True, null=True, blank=True)
     size = models.IntegerField(default=0)
+    
+    attachment = models.FileField(upload_to='reading_attachments', null=True, blank=True)
+    
+    def probe_name(self):
+        return self.probe.replace('edu.northwestern.cbits.purple_robot_manager.probes.', '')
+        
+    def update_guid(self):
+        if self.guid != None:
+            return
+            
+        reading_json = json.loads(self.payload)
+        
+        self.guid = reading_json['GUID']
+        self.save()
     
 EXPORT_JOB_STATE_CHOICES = (
     ('pending', 'Pending'),

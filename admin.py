@@ -28,7 +28,7 @@ class PurpleRobotEventAdmin(admin.ModelAdmin):
 admin.site.register(PurpleRobotEvent, PurpleRobotEventAdmin)
 
 class PurpleRobotReadingAdmin(admin.ModelAdmin):
-    list_display = ('probe', 'user_id', 'logged', 'size', 'guid')
+    list_display = ('probe_name', 'user_id', 'guid', 'logged', 'size', 'attachment',)
     list_filter = ['probe', 'user_id', 'logged']
     search_fields = ['probe', 'user_id', 'payload']
 

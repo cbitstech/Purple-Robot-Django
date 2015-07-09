@@ -54,38 +54,50 @@ def ingest_payload(request):
     result['Status'] = 'error'
     result['Payload'] = "{}"
     
-    try:
-        json_str = request.POST['json']
+    if request.method == 'POST':
+        try:
+            json_str = request.POST['json']
         
-        json_obj = json.loads(json_str)
+            json_obj = json.loads(json_str)
         
-        payload_str = json_obj['Payload']
+            payload_str = json_obj['Payload']
            
-        m = hashlib.md5()
-        m.update((json_obj['UserHash'] + json_obj['Operation'] + json_obj['Payload']).encode('utf-8'))
-        
-        checksum_str = m.hexdigest()
-        
-        result = {}
-        result['Status'] = 'error'
-        result['Payload'] = "{}"
-        
-        if checksum_str == json_obj['Checksum']:
-            result['Status'] = 'success'
-            
-            payload_json = json.loads(payload_str)
-        
-            payload = PurpleRobotPayload(payload=json.dumps(payload_json, indent=2, ensure_ascii=False), user_id=json_obj['UserHash'])
-            payload.save()
-        
             m = hashlib.md5()
-            m.update(result['Status'] + result['Payload'])
+            m.update((json_obj['UserHash'] + json_obj['Operation'] + json_obj['Payload']).encode('utf-8'))
         
-            result['Checksum'] = m.hexdigest()
-        else:
-            result['Error'] = 'Source checksum ' + json_obj['Checksum'] + ' doesn\'t match destination checksum ' + checksum_str + '.'
-    except Exception, e:
-        result['Error'] = str(e)
+            checksum_str = m.hexdigest()
+        
+            result = {}
+            result['Status'] = 'error'
+            result['Payload'] = "{}"
+        
+            if checksum_str == json_obj['Checksum']:
+                result['Status'] = 'success'
+            
+                payload_json = json.loads(payload_str)
+            
+                payload = PurpleRobotPayload(payload=json.dumps(payload_json, indent=2, ensure_ascii=False), user_id=json_obj['UserHash'])
+                payload.save()
+        
+                m = hashlib.md5()
+                m.update(result['Status'] + result['Payload'])
+        
+                result['Checksum'] = m.hexdigest()
+            
+                if 'media_url' in payload_str:
+                    payload.ingest_readings()
+                    for k, v in request.FILES.iteritems():
+                        reading = PurpleRobotReading.objects.filter(guid=k).first()
+                        
+                        if reading != None:
+                            reading.attachment.save(v.name, v)
+            else:
+                result['Error'] = 'Source checksum ' + json_obj['Checksum'] + ' doesn\'t match destination checksum ' + checksum_str + '.'
+        except Exception, e:
+            result['Error'] = str(e)
+    else:
+        result['Error'] = 'GET requests not supported.'
+    
         
     return HttpResponse(json.dumps(result), content_type='application/json')
 
