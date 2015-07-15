@@ -7,11 +7,11 @@ import time
 
 from django.core.management.base import BaseCommand
 
-from purple_robot_app.models import PurpleRobotPayload
+from purple_robot_app.models import PurpleRobotPayload, PurpleRobotReading
 
 ENDPOINT_MAP = {
     '073adb668d74a6aaa7d452eb9f804c99': {
-        'endpoint': 'http://omar.cbitstech.net/pr/',
+        'endpoint': 'http://p20-staging.cbitstech.net/pr/',
         'new_id': 'cjkarr@gmail.com'
     },
     'e1c80488853d86ab9d6decfe30d8930f': {
@@ -65,20 +65,38 @@ class Command(BaseCommand):
 
                     data = { 'json': json.dumps(payload, indent=2) }
                     
-                    try:
-                        requests.post(config['endpoint'], data=data, verify=False, timeout=5.0)
-
-                        tags = pr_payload.process_tags
-                
-                        if tags is None or tags.find(tag) == -1:
-                            if tags is None or len(tags) == 0:
-                                tags = tag
-                            else:
-                                tags += ' ' + tag
-                        
-                            pr_payload.process_tags = tags
+                    files = {}
                     
-                            pr_payload.save()
+                    if 'media_url' in pr_payload.payload:
+                        readings = json.loads(pr_payload.payload)
+                        
+                        for reading in readings:
+                            if 'media_url' in reading:
+                                pr_reading = PurpleRobotReading.objects.filter(guid=reading['GUID']).first()
+                                
+                                if pr_reading != None and pr_reading.attachment != None:
+                                    reading_json = json.loads(pr_reading.payload)
+                                    
+                                    filename = pr_reading.attachment.name.split('/')[-1]
+                                    files[pr_reading.guid] = (filename, pr_reading.attachment, reading_json['media_content_type'],)
+                    
+                    try:
+                        response = requests.post(config['endpoint'], data=data, verify=False, timeout=120.0, files=files)
+                        
+                        resopnse_obj = json.load(response.text)
+                        
+                        if response_obj['Status'] == 'success':
+							tags = pr_payload.process_tags
+				
+							if tags is None or tags.find(tag) == -1:
+								if tags is None or len(tags) == 0:
+									tags = tag
+								else:
+									tags += ' ' + tag
+						
+								pr_payload.process_tags = tags
+					
+								pr_payload.save()
                         if PRINT_PROGRESS:
                             sys.stdout.write('.')
                             sys.stdout.flush()
