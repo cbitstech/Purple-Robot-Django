@@ -65,13 +65,28 @@ def insert(connection_str, user_id, reading):
                                                   'most_likely_place_likelihood, ' + \
                                                   'places_json) VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id;'
     
+    most_likely_id = None
+    
+    if 'MOST_LIKELY_PLACE_ID' in reading:
+    	most_likely_id = reading['MOST_LIKELY_PLACE_ID']
+
+    most_likely_place = None
+    
+    if 'MOST_LIKELY_PLACE' in reading:
+    	most_likely_place = reading['MOST_LIKELY_PLACE']
+
+    most_likely_likelihood = None
+    
+    if 'MOST_LIKELY_PLACE_LIKELIHOOD' in reading:
+    	most_likely_likelihood = reading['MOST_LIKELY_PLACE_LIKELIHOOD']
+    	
     cursor.execute(reading_cmd, (user_id, \
                                  reading['GUID'], \
                                  reading['TIMESTAMP'], \
                                  datetime.datetime.fromtimestamp(reading['TIMESTAMP'], tz=pytz.utc), \
-                                 reading['MOST_LIKELY_PLACE_ID'], \
-                                 reading['MOST_LIKELY_PLACE'], \
-                                 reading['MOST_LIKELY_PLACE_LIKELIHOOD'], \
+                                 most_likely_id, \
+                                 most_likely_place, \
+                                 most_likely_likelihood, \
                                  json.dumps(places_only)))
     conn.commit()
         

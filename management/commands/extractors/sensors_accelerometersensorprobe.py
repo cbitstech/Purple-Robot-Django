@@ -132,11 +132,8 @@ def insert(connection_str, user_id, reading):
                 
             if readings_file != None:
                 content = list(msgpack.Unpacker(readings_file))
-                
-                print('  fields: ' + len(content))
             
                 if len(content) == 8:
-                    print('HEADER: ' + content[0])
                     time_buffer = content[1]
                     sensor_time_buffer = content[2]
                     normal_time_buffer = content[3]
@@ -165,8 +162,6 @@ def insert(connection_str, user_id, reading):
                         values.append(accuracy_buffer[i])
         
                         reading_cursor.execute(reading_cmd, values)
-            else:
-                print('  empty readings')
 
     conn.commit()
         

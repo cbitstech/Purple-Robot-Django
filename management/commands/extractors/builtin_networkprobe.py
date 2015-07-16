@@ -59,15 +59,35 @@ def insert(connection_str, user_id, reading):
                                                    'interface_name, ' + \
                                                    'ip_address, ' + \
                                                    'interface_display) VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id;'
+                                                   
+    interface_name = None
+    
+    if 'INTERFACE_NAME' in reading:
+        interface_name = reading['INTERFACE_NAME']
 
+    ip_address = None
+    
+    if 'IP_ADDRESS' in reading:
+        ip_address = reading['IP_ADDRESS']
+
+    hostname = None
+    
+    if 'HOSTNAME' in reading:
+        hostname = reading['HOSTNAME']
+
+    interface_display = None
+    
+    if 'INTERFACE_DISPLAY' in reading:
+        interface_display = reading['INTERFACE_DISPLAY']
+    
     cursor.execute(reading_cmd, (user_id, \
                                  reading['GUID'], \
                                  reading['TIMESTAMP'], \
                                  datetime.datetime.fromtimestamp(reading['TIMESTAMP'], tz=pytz.utc), \
-                                 reading['HOSTNAME'], \
-                                 reading['INTERFACE_NAME'], \
-                                 reading['IP_ADDRESS'], \
-                                 reading['INTERFACE_DISPLAY']))
+                                 hostname, \
+                                 interface_name, \
+                                 ip_address, \
+                                 interface_display))
     conn.commit()
         
     cursor.close()
