@@ -92,7 +92,7 @@ To automatically import data, add to your cron jobs the following command:
 
 ```./manage.py extract_into_database```
 
-Relevant Exposed URLs
+Mirroring to a Flat Database Structure
 ---------------------
 
 `http://HOSTNAME/pr/`: The data upload endpoint where Purple Robot sends sensor data payloads.
