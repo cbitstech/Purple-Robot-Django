@@ -82,7 +82,7 @@ Security
 * To prevent cached export files being viewed, *do not* enable directory listings in web server serving static content.
 * Do not run in debug mode. Configure the `ADMINS` key with your e-mail address and receive error reports via e-mail.
 
-Relevant Exposed URLs
+Mirroring to a Flat Database Structure
 ---------------------
 To enable support for mirroring content to a flat database, include a connection string in the following format in your `local_settings.py` file:
 
@@ -92,7 +92,7 @@ To automatically import data, add to your cron jobs the following command:
 
 ```./manage.py extract_into_database```
 
-Mirroring to a Flat Database Structure
+Relevant Exposed URLs
 ---------------------
 
 `http://HOSTNAME/pr/`: The data upload endpoint where Purple Robot sends sensor data payloads.
