@@ -7,6 +7,7 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponse, UnreadablePostError
 from django.shortcuts import render_to_response, get_object_or_404, redirect
 from django.template import RequestContext
+from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_exempt
 
 from forms import ExportJobForm
@@ -14,6 +15,7 @@ from models import PurpleRobotPayload, PurpleRobotTest, PurpleRobotEvent, \
                    PurpleRobotReport, PurpleRobotExportJob, PurpleRobotReading, \
                    PurpleRobotConfiguration, PurpleRobotDevice, PurpleRobotDeviceGroup
 
+@never_cache
 def config(request):
     config = None
     
@@ -49,6 +51,7 @@ def config(request):
     return HttpResponse(config.contents, content_type=content_type)
 
 @csrf_exempt
+@never_cache
 def ingest_payload(request):
     result = {}
     result['Status'] = 'error'
@@ -103,6 +106,7 @@ def ingest_payload(request):
 
 
 @csrf_exempt
+@never_cache
 def ingest_payload_print(request):
     result = {}
     result['Status'] = 'error'
@@ -142,6 +146,7 @@ def ingest_payload_print(request):
     return HttpResponse(json.dumps(result), content_type='application/json')
 
 @csrf_exempt
+@never_cache
 def log_event(request):
     try:
         payload = json.loads(request.POST['json'])
@@ -169,6 +174,7 @@ def log_event(request):
     return HttpResponse(json.dumps({ 'result': 'error', 'message': 'Unknown error' }), content_type='application/json')
 
 @staff_member_required
+@never_cache
 def test_report(request, slug):
     c = RequestContext(request)
     
@@ -177,6 +183,7 @@ def test_report(request, slug):
     return render_to_response('purple_robot_test.html', c)
 
 @staff_member_required
+@never_cache
 def tests_by_user(request, user_id):
     c = RequestContext(request)
     
@@ -192,6 +199,7 @@ def tests_by_user(request, user_id):
     return render_to_response('purple_robot_tests.html', c)
 
 @staff_member_required
+@never_cache
 def tests_all(request):
     c = RequestContext(request)
     
@@ -207,6 +215,7 @@ def tests_all(request):
     return render_to_response('purple_robot_tests.html', c)
 
 @staff_member_required
+@never_cache
 def pr_home(request):
     c = RequestContext(request)
     
@@ -215,6 +224,7 @@ def pr_home(request):
     return render_to_response('purple_robot_home.html', c)
 
 @staff_member_required
+@never_cache
 def pr_device(request, device_id):
     c = RequestContext(request)
     
@@ -223,11 +233,13 @@ def pr_device(request, device_id):
     return render_to_response('purple_robot_device.html', c)
 
 @staff_member_required
+@never_cache
 def pr_by_probe(request):
     return render_to_response('purple_robot_probe.html')
 
 
 @staff_member_required
+@never_cache
 def pr_by_user(request):
     users = {}
     
@@ -253,6 +265,7 @@ def pr_by_user(request):
 
 
 @staff_member_required
+@never_cache
 def test_details_json(request, slug):
     results = []
     
@@ -344,12 +357,14 @@ def test_details_json(request, slug):
     return HttpResponse(json.dumps(results), content_type='application/json')
     
 @staff_member_required
+@never_cache
 def fetch_export_file(request, job_pk):
     job = PurpleRobotExportJob.objects.get(pk=int(job_pk))
     
     return redirect(job.export_file.url)
 
 @staff_member_required
+@never_cache
 def create_export_job(request):
     c = RequestContext(request)
 
@@ -392,6 +407,7 @@ def create_export_job(request):
     return render_to_response('purple_robot_export.html', c)
     
 @staff_member_required
+@never_cache
 def pr_add_group(request):
     if request.method == 'POST':
         group_id = request.POST['group_id']
@@ -409,6 +425,7 @@ def pr_add_group(request):
     return redirect(reverse('pr_home'))
 
 @staff_member_required
+@never_cache
 def pr_add_device(request, group_id):
     group = PurpleRobotDeviceGroup.objects.filter(group_id=group_id).first()
 
@@ -431,6 +448,7 @@ def pr_add_device(request, group_id):
     return redirect(reverse('pr_home'))
 
 @staff_member_required
+@never_cache
 def pr_configurations(request):
     c = RequestContext(request)
     c.update(csrf(request))
@@ -441,6 +459,7 @@ def pr_configurations(request):
 
 
 @staff_member_required
+@never_cache
 def pr_configuration(request, config_id):
     c = RequestContext(request)
     c.update(csrf(request))

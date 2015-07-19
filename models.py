@@ -6,6 +6,7 @@ import pytz
 import string
 import time
 
+from django.core.cache import cache
 from django.core.urlresolvers import reverse
 from django.db import models
 from django.db.models import Sum
@@ -78,11 +79,20 @@ class PurpleRobotDevice(models.Model):
         
     def last_upload(self):
         self.init_hash()
+
+        last_upload = cache.get(self.hash_key + '__last_upload')
+        
+        if last_upload != None:
+            return last_upload
+                        
+        payload = PurpleRobotPayload.objects.filter(user_id=self.hash_key).order_by('-added').first()
+        
+        if payload != None:
+            last_upload = payload.added
             
-        for payload in PurpleRobotPayload.objects.filter(user_id=self.hash_key).order_by('-added')[:1]:
-            return payload.added
+            cache.set(self.hash_key + '__last_upload', last_upload)
             
-        return None
+        return last_upload
         
     def last_upload_status(self):
         upload = self.last_upload()
@@ -139,9 +149,18 @@ class PurpleRobotDevice(models.Model):
 
     def last_battery(self):
         self.init_hash()
+
+        data = cache.get(self.hash_key + '__last_battery')
+        
+        if data != None:
+            return data['level']
             
-        for reading in PurpleRobotReading.objects.filter(user_id=self.hash_key, probe='edu.northwestern.cbits.purple_robot_manager.probes.builtin.BatteryProbe').order_by('-logged')[:1]:
+        reading = PurpleRobotReading.objects.filter(user_id=self.hash_key, probe='edu.northwestern.cbits.purple_robot_manager.probes.builtin.BatteryProbe').order_by('-logged').first()
+        
+        if reading != None:
             data = json.loads(reading.payload)
+            
+            cache.set(self.hash_key + '__last_battery', data)
             
             return data['level']
             
@@ -196,41 +215,84 @@ class PurpleRobotDevice(models.Model):
         return readings
 
     def last_pending_count(self):
-        self.init_hash()
-            
-        for reading in PurpleRobotReading.objects.filter(user_id=self.hash_key, probe='edu.northwestern.cbits.purple_robot_manager.probes.builtin.RobotHealthProbe').order_by('-logged')[:1]:
-            data = json.loads(reading.payload)
-            
+        data = self.last_robot_health()
+        
+        if data != None:
             return data['PENDING_COUNT']
             
         return None
 
     def triggers(self):
-        self.init_hash()
-            
-        for reading in PurpleRobotReading.objects.filter(user_id=self.hash_key, probe='edu.northwestern.cbits.purple_robot_manager.probes.builtin.RobotHealthProbe').order_by('-logged')[:1]:
-            data = json.loads(reading.payload)
-            
+        data = self.last_robot_health()
+        
+        if data != None:
             return data['TRIGGERS']
             
         return None
 
-    def last_model(self):
+    def last_hardware_info(self):
         self.init_hash()
-            
-        for reading in PurpleRobotReading.objects.filter(user_id=self.hash_key, probe='edu.northwestern.cbits.purple_robot_manager.probes.builtin.HardwareInformationProbe').order_by('-logged')[:1]:
+        
+        data = cache.get(self.hash_key + '__last_hardware_info')
+        
+        if data != None:
+            return data
+    
+        reading = PurpleRobotReading.objects.filter(user_id=self.hash_key, probe='edu.northwestern.cbits.purple_robot_manager.probes.builtin.HardwareInformationProbe').order_by('-logged').first()
+        
+        if reading != None:
             data = json.loads(reading.payload)
             
+            cache.set(self.hash_key + '__last_hardware_info', data)
+            
+        return data
+
+    def last_model(self):
+        data = self.last_hardware_info()
+            
+        if data != None:
             return data['MODEL']
             
         return None
 
-    def last_platform(self):
+    def last_robot_health(self):
         self.init_hash()
-            
-        for reading in PurpleRobotReading.objects.filter(user_id=self.hash_key, probe='edu.northwestern.cbits.purple_robot_manager.probes.builtin.SoftwareInformationProbe').order_by('-logged')[:1]:
+        
+        data = cache.get(self.hash_key + '__last_robot_health')
+        
+        if data != None:
+            return data
+    
+        reading = PurpleRobotReading.objects.filter(user_id=self.hash_key, probe='edu.northwestern.cbits.purple_robot_manager.probes.builtin.RobotHealthProbe').order_by('-logged').first()
+        
+        if reading != None:
             data = json.loads(reading.payload)
             
+            cache.set(self.hash_key + '__last_robot_health', data)
+            
+        return data
+        
+    def last_software_info(self):
+        self.init_hash()
+        
+        data = cache.get(self.hash_key + '__last_software_info')
+        
+        if data != None:
+            return data
+    
+        reading = PurpleRobotReading.objects.filter(user_id=self.hash_key, probe='edu.northwestern.cbits.purple_robot_manager.probes.builtin.SoftwareInformationProbe').order_by('-logged').first()
+        
+        if reading != None:
+            data = json.loads(reading.payload)
+            
+            cache.set(self.hash_key + '__last_software_info', data)
+            
+        return data
+
+    def last_platform(self):
+        data = self.last_software_info()
+        
+        if data != None:
             return 'Android ' + data['RELEASE']
             
         return None
@@ -248,6 +310,11 @@ class PurpleRobotDevice(models.Model):
     def last_readings(self, omit_readings=False):
         self.init_hash()
 
+        readings = cache.get(self.hash_key + '__last_readings')
+
+        if readings != None:
+            return readings
+            
         readings = []
         
         for item in PurpleRobotReading.objects.filter(user_id=self.hash_key).order_by('probe', '-logged').distinct('probe'):
@@ -264,11 +331,15 @@ class PurpleRobotDevice(models.Model):
                 reading['frequency'] = 'Unknown'
                 
                 for test in PurpleRobotTest.objects.filter(probe=item.probe, user_id=self.hash_key):
-                    reading['frequency'] = test.average_frequency
+                    reading['frequency'] = test.average_frequency()
             
             readings.append(reading)
         
-        return sorted(readings, key=lambda k: k['last_update'], reverse=True) 
+        readings = sorted(readings, key=lambda k: k['last_update'], reverse=True) 
+        
+        cache.set(self.hash_key + '__last_readings', readings)
+        
+        return readings
         
     def data_size_history(self, unit='day', count=None):
         now = timezone.localtime(timezone.now())
@@ -297,16 +368,16 @@ class PurpleRobotDevice(models.Model):
         while count > 0:
             start = end - bin_size
             
-            size = 0
-            
-            readings = PurpleRobotReading.objects.filter(user_id=self.hash_key, logged__gte=start, logged__lt=end, size=0)[:250]
-            
-            while readings.count() > 0:
-                for reading in readings:
-                    reading.size = len(reading.payload)
-                    reading.save()
-                
-                readings = PurpleRobotReading.objects.filter(user_id=self.hash_key, logged__gte=start, logged__lt=end, size=0)[:250]
+#            size = 0
+#            
+#            readings = PurpleRobotReading.objects.filter(user_id=self.hash_key, logged__gte=start, logged__lt=end, size=0)[:250]
+#            
+#            while readings.count() > 0:
+#                for reading in readings:
+#                    reading.size = len(reading.payload)
+#                    reading.save()
+#                
+#                readings = PurpleRobotReading.objects.filter(user_id=self.hash_key, logged__gte=start, logged__lt=end, size=0)[:250]
                 
             size = PurpleRobotReading.objects.filter(user_id=self.hash_key, logged__gte=start, logged__lt=end).aggregate(Sum('size'))
             
