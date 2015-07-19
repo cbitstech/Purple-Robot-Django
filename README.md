@@ -82,6 +82,15 @@ Security
 * To prevent cached export files being viewed, *do not* enable directory listings in web server serving static content.
 * Do not run in debug mode. Configure the `ADMINS` key with your e-mail address and receive error reports via e-mail.
 
+Mirroring to a Flat Database Structure
+---------------------
+To enable support for mirroring content to a flat database, include a connection string in the following format in your `local_settings.py` file:
+
+```PURPLE_ROBOT_FLAT_MIRROR = 'dbname=DATABASE_NAME user=DATABASE_USER password=DATABASE_PASSWORD host=DATABASE_HOST'```
+
+To automatically import data, add to your cron jobs the following command:
+
+```./manage.py extract_into_database```
 
 Relevant Exposed URLs
 ---------------------
