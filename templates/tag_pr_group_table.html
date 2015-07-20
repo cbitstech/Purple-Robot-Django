@@ -52,12 +52,12 @@
 				<td class="text-center">
 					{% with count=device.last_pending_count %}
 						{% if count > 50 %}
-							<strong class="text-danger">{{ device.last_pending_count }}</strong>
+							<strong class="text-danger">{{ count }}</strong>
 						{% else %}
 							{% if count > 25 %}
-								<strong class="text-warning">{{ device.last_pending_count }}</strong>
+								<strong class="text-warning">{{ count }}</strong>
 							{% else %}
-								{{ device.last_pending_count }}
+								{{ count }}
 							{% endif %}
 						{% endif %}
 					{% endwith %}
