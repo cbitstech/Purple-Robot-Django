@@ -299,13 +299,20 @@ class PurpleRobotDevice(models.Model):
 
     def last_location(self):
         self.init_hash()
+
+        location = cache.get(self.hash_key + '__last_robot_location')
+        
+        if location != None:
+            return location
             
         for reading in PurpleRobotReading.objects.filter(user_id=self.hash_key, probe='edu.northwestern.cbits.purple_robot_manager.probes.builtin.LocationProbe').order_by('-logged')[:1]:
             data = json.loads(reading.payload)
             
-            return { 'latitude': data['LATITUDE'], 'longitude': data['LONGITUDE'] }
+            location = { 'latitude': data['LATITUDE'], 'longitude': data['LONGITUDE'] }
             
-        return None
+            cache.set(self.hash_key + '__last_robot_location', location)
+
+        return location
         
     def last_readings(self, omit_readings=False):
         self.init_hash()
@@ -317,23 +324,28 @@ class PurpleRobotDevice(models.Model):
             
         readings = []
         
-        for item in PurpleRobotReading.objects.filter(user_id=self.hash_key).order_by('probe', '-logged').distinct('probe'):
-            reading = {}
+        probe_readings = PurpleRobotReading.objects.order_by('probe').values('probe').distinct()
+        
+        for probe_reading in probe_readings:
+            item = PurpleRobotReading.objects.filter(probe=probe_reading['probe'], user_id=self.hash_key).order_by('-logged').first()
             
-            reading['name'] = item.probe.split('.')[-1]
-            reading['full_probe_name'] = item.probe
-            reading['last_update'] = item.logged
+            if item != None:
+                reading = {}
             
-            if omit_readings == False:
-                reading['num_readings'] = PurpleRobotReading.objects.filter(user_id=self.hash_key, probe=item.probe).count()
-                reading['status'] = 'TODO'
+                reading['name'] = item.probe.split('.')[-1]
+                reading['full_probe_name'] = item.probe
+                reading['last_update'] = item.logged
+            
+                if omit_readings == False:
+                    reading['num_readings'] = PurpleRobotReading.objects.filter(user_id=self.hash_key, probe=item.probe).count()
+                    reading['status'] = 'TODO'
 
-                reading['frequency'] = 'Unknown'
+                    reading['frequency'] = 'Unknown'
                 
-                for test in PurpleRobotTest.objects.filter(probe=item.probe, user_id=self.hash_key):
-                    reading['frequency'] = test.average_frequency()
+                    for test in PurpleRobotTest.objects.filter(probe=item.probe, user_id=self.hash_key):
+                        reading['frequency'] = test.average_frequency()
             
-            readings.append(reading)
+                readings.append(reading)
         
         readings = sorted(readings, key=lambda k: k['last_update'], reverse=True) 
         
@@ -503,7 +515,7 @@ class PurpleRobotReading(models.Model):
     probe = models.CharField(max_length=1024, null=True, blank=True, db_index=True)
     user_id = models.CharField(max_length=1024, db_index=True)
     payload = models.TextField(max_length=8388608)
-    logged = models.DateTimeField()
+    logged = models.DateTimeField(db_index=True)
     guid = models.CharField(max_length=1024, db_index=True, null=True, blank=True)
     size = models.IntegerField(default=0)
     
@@ -520,6 +532,10 @@ class PurpleRobotReading(models.Model):
         
         self.guid = reading_json['GUID']
         self.save()
+
+@receiver(pre_delete, sender=PurpleRobotReading)
+def purplerobotreport_delete(sender, instance, **kwargs):
+    instance.attachment.delete(False)
     
 EXPORT_JOB_STATE_CHOICES = (
     ('pending', 'Pending'),
