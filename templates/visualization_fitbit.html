@@ -1,0 +1,238 @@
+<div class="col-md-12" style="padding: 0;">
+	<div id="heart_chart" style="border: 1px solid #808080; height: 120px; width: 100%; overflow: hidden;"></div>
+	<div id="steps_chart" style="border: 1px solid #808080; border-top: none; height: 120px; width: 100%; overflow: hidden;"></div>
+	<div id="distance_chart" style="border: 1px solid #808080;  border-top: none; height: 120px; width: 100%; overflow: hidden;"></div>
+	<div id="calorie_chart" style="border: 1px solid #808080;  border-top: none; height: 120px; width: 100%; overflow: hidden;"></div>
+	<div id="floors_chart" style="border: 1px solid #808080;  border-top: none; height: 120px; width: 100%; overflow: hidden;"></div>
+	<div id="elevation_chart" style="border: 1px solid #808080;  border-top: none; height: 120px; width: 100%; overflow: hidden;"></div>
+	<script>
+		var timeUnit = {
+			'name': '4 hour', 
+			'seconds': 3600 * 4, 
+			'formatter': function(d)
+			{ 
+				return moment(d).format('h:mm a');
+			}
+		};
+
+		var graph = new Rickshaw.Graph( {
+			element: document.getElementById("heart_chart"),
+			height: 120,
+			width: $("div#heart_chart").width(),
+			renderer: 'scatterplot',
+			series: [
+				{
+					color: "#2E79B9",
+					data: {{ heart|safe }},
+					name: 'Heart Rate (BPM)'
+				}
+			],
+			padding: { top: 0.25, bottom: 0.25 }
+		});
+		
+		var x_axis = new Rickshaw.Graph.Axis.Time( { graph: graph, timeUnit: timeUnit } );
+
+		var hoverDetail = new Rickshaw.Graph.HoverDetail( {
+			graph: graph,
+			onShow: function(event)
+			{
+				var text = $(".x_label").text();
+				var parenIndex = text.indexOf(")");
+				text = text.substring(0, parenIndex + 1);
+			},
+			xFormatter: function(x)
+			{ 
+				var date = new Date (x * 1000);
+				return "" + date 
+			},
+			yFormatter: function(y) { return Math.floor(y) }
+		});
+		
+		graph.render();
+		
+		// ----------
+
+		graph = new Rickshaw.Graph( {
+			element: document.getElementById("steps_chart"),
+			height: 120,
+			width: $("div#steps_chart").width(),
+			renderer: 'scatterplot',
+			series: [
+				{
+					color: "#2E79B9",
+					data: {{ steps|safe }},
+					name: 'Steps'
+				}
+			],
+			padding: { top: 0.25, bottom: 0.25 }
+		});
+		
+		x_axis = new Rickshaw.Graph.Axis.Time( { graph: graph, timeUnit: timeUnit } );
+
+		hoverDetail = new Rickshaw.Graph.HoverDetail( {
+			graph: graph,
+			onShow: function(event)
+			{
+				var text = $(".x_label").text();
+				var parenIndex = text.indexOf(")");
+				text = text.substring(0, parenIndex + 1);
+			},
+			xFormatter: function(x)
+			{ 
+				var date = new Date (x * 1000);
+				return "" + date 
+			},
+			yFormatter: function(y) { return Math.floor(y) }
+		});
+		
+		graph.render();
+
+		// ----------
+
+		graph = new Rickshaw.Graph( {
+			element: document.getElementById("distance_chart"),
+			height: 120,
+			width: $("div#distance_chart").width(),
+			renderer: 'scatterplot',
+			series: [
+				{
+					color: "#2E79B9",
+					data: {{ distance|safe }},
+					name: 'Distance'
+				}
+			],
+			padding: { top: 0.25, bottom: 0.25 }
+		});
+		
+		x_axis = new Rickshaw.Graph.Axis.Time( { graph: graph, timeUnit: timeUnit } );
+
+		hoverDetail = new Rickshaw.Graph.HoverDetail( {
+			graph: graph,
+			onShow: function(event)
+			{
+				var text = $(".x_label").text();
+				var parenIndex = text.indexOf(")");
+				text = text.substring(0, parenIndex + 1);
+			},
+			xFormatter: function(x)
+			{ 
+				var date = new Date (x * 1000);
+				return "" + date 
+			},
+			yFormatter: function(y) { return Math.floor(y) }
+		});
+		
+		graph.render();
+
+		// ----------
+
+		graph = new Rickshaw.Graph( {
+			element: document.getElementById("calorie_chart"),
+			height: 120,
+			width: $("div#calorie_chart").width(),
+			renderer: 'scatterplot',
+			series: [
+				{
+					color: "#2E79B9",
+					data: {{ calories|safe }},
+					name: 'Calories'
+				}
+			],
+			padding: { top: 0.25, bottom: 0.25 }
+		});
+		
+		x_axis = new Rickshaw.Graph.Axis.Time( { graph: graph, timeUnit: timeUnit } );
+
+		hoverDetail = new Rickshaw.Graph.HoverDetail( {
+			graph: graph,
+			onShow: function(event)
+			{
+				var text = $(".x_label").text();
+				var parenIndex = text.indexOf(")");
+				text = text.substring(0, parenIndex + 1);
+			},
+			xFormatter: function(x)
+			{ 
+				var date = new Date (x * 1000);
+				return "" + date 
+			},
+			yFormatter: function(y) { return Math.floor(y) }
+		});
+		
+		graph.render();
+
+		// ----------
+
+		graph = new Rickshaw.Graph( {
+			element: document.getElementById("floors_chart"),
+			height: 120,
+			width: $("div#floors_chart").width(),
+			renderer: 'scatterplot',
+			series: [
+				{
+					color: "#2E79B9",
+					data: {{ floors|safe }},
+					name: 'Floors'
+				}
+			],
+			padding: { top: 0.25, bottom: 0.25 }
+		});
+		
+		x_axis = new Rickshaw.Graph.Axis.Time( { graph: graph, timeUnit: timeUnit } );
+
+		hoverDetail = new Rickshaw.Graph.HoverDetail( {
+			graph: graph,
+			onShow: function(event)
+			{
+				var text = $(".x_label").text();
+				var parenIndex = text.indexOf(")");
+				text = text.substring(0, parenIndex + 1);
+			},
+			xFormatter: function(x)
+			{ 
+				var date = new Date (x * 1000);
+				return "" + date 
+			},
+			yFormatter: function(y) { return Math.floor(y) }
+		});
+		
+		graph.render();
+
+		// ----------
+
+		graph = new Rickshaw.Graph( {
+			element: document.getElementById("elevation_chart"),
+			height: 120,
+			width: $("div#elevation_chart").width(),
+			renderer: 'scatterplot',
+			series: [
+				{
+					color: "#2E79B9",
+					data: {{ heart|safe }},
+					name: 'Elevation'
+				}
+			],
+			padding: { top: 0.25, bottom: 0.25 }
+		});
+		
+		x_axis = new Rickshaw.Graph.Axis.Time( { graph: graph, timeUnit: timeUnit } );
+
+		hoverDetail = new Rickshaw.Graph.HoverDetail( {
+			graph: graph,
+			onShow: function(event)
+			{
+				var text = $(".x_label").text();
+				var parenIndex = text.indexOf(")");
+				text = text.substring(0, parenIndex + 1);
+			},
+			xFormatter: function(x)
+			{ 
+				var date = new Date (x * 1000);
+				return "" + date 
+			},
+			yFormatter: function(y) { return Math.floor(y) }
+		});
+		
+		graph.render();
+	</script>
+</div>
