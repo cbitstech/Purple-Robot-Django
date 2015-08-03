@@ -15,7 +15,8 @@
 		</tr>
 	</thead>
 	<tbody>
-		{% for device in group.devices.all %}
+		<!-- % for device in group.devices.all % -->
+		{% for device in device_group_devices %}
 			<tr class="{{ device.status }}">
 				<td><a href="{% url 'pr_device' device.device_id %}">{{ device.name }}</a></td>
 				<td>{{ device.device_id }}</td>

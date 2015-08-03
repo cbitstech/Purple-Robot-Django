@@ -8,7 +8,7 @@ import time
 
 from django.core.cache import cache
 from django.core.urlresolvers import reverse
-from django.db import models
+from django.db import models, connection
 from django.db.models import Sum
 from django.db.models.signals import pre_delete
 from django.dispatch.dispatcher import receiver
@@ -274,7 +274,7 @@ class PurpleRobotDevice(models.Model):
         
         if data != None:
             return data
-    
+        
         reading = self.most_recent_reading('edu.northwestern.cbits.purple_robot_manager.probes.builtin.HardwareInformationProbe')
         
         if reading != None:
@@ -363,7 +363,7 @@ class PurpleRobotDevice(models.Model):
             
         readings = []
         
-        probe_readings = PurpleRobotReading.objects.order_by('probe').values('probe').distinct()
+        probe_readings = PurpleRobotReading.objects.values('probe').distinct()
         
         for probe_reading in probe_readings:
             item = self.most_recent_reading(probe_reading['probe'])
@@ -376,7 +376,11 @@ class PurpleRobotDevice(models.Model):
                 reading['last_update'] = item.logged
             
                 if omit_readings == False:
-                    reading['num_readings'] = PurpleRobotReading.objects.filter(user_id=self.hash_key, probe=item.probe).count()
+                    cursor = connection.cursor()
+                    cursor.execute("SELECT COUNT(logged) FROM \"purple_robot_app_purplerobotreading\" WHERE (\"purple_robot_app_purplerobotreading\".\"probe\" = '%s' AND \"purple_robot_app_purplerobotreading\".\"user_id\" = '%s' );" % (item.probe, self.hash_key))
+                    row = cursor.fetchone()
+                    reading['num_readings'] = int(row[0])
+#                    reading['num_readings'] = PurpleRobotReading.objects.filter(user_id=self.hash_key, probe=item.probe).count()
                     reading['status'] = 'TODO'
 
                     reading['frequency'] = 'Unknown'
