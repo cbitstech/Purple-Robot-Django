@@ -16,7 +16,7 @@ class Command(BaseCommand):
 
         open('/tmp/size_readings.lock', 'wa').close() 
 
-        readings = PurpleRobotReading.objects.filter(size=0)[:2000]
+        readings = PurpleRobotReading.objects.filter(size=0).order_by('-logged')[:2000]
 
         for reading in readings:
             reading.size = len(reading.payload)
