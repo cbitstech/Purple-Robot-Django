@@ -3,6 +3,7 @@ import pytz
 
 from django import template
 from django.conf import settings
+from django.core.cache import cache
 from django.template.defaultfilters import stringfilter
 from django.template.loader import render_to_string
 from django.utils import timezone
@@ -58,7 +59,9 @@ class GroupTableNode(template.Node):
 
     def render(self, context):
         group_id = self.group_id.resolve(context)
+        
         context['device_group'] = PurpleRobotDeviceGroup.objects.get(group_id=group_id)
+        context['device_group_devices'] = list(context['device_group'].devices.all())
         
         return render_to_string('tag_pr_group_table.html', context)
 

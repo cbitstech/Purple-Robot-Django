@@ -28,7 +28,7 @@ class PurpleRobotEventAdmin(admin.ModelAdmin):
 admin.site.register(PurpleRobotEvent, PurpleRobotEventAdmin)
 
 class PurpleRobotReadingAdmin(admin.ModelAdmin):
-    list_display = ('probe', 'user_id', 'logged', 'size', 'guid')
+    list_display = ('probe_name', 'user_id', 'guid', 'logged', 'size', 'attachment',)
     list_filter = ['probe', 'user_id', 'logged']
     search_fields = ['probe', 'user_id', 'payload']
 
@@ -43,7 +43,6 @@ admin.site.register(PurpleRobotReport, PurpleRobotReportAdmin)
 class PurpleRobotTestAdmin(admin.ModelAdmin):
     list_display = ('probe', 'user_id', 'slug', 'frequency', 'last_updated', 'active')
     list_filter = ['probe', 'user_id', 'last_updated', 'active']
-    exclude = ('report',)
     
 admin.site.register(PurpleRobotTest, PurpleRobotTestAdmin)
 

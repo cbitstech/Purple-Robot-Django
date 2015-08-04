@@ -55,7 +55,7 @@
 			<tbody>
 				{% for reading in device.last_readings %}
 					<tr>
-						<td>{{ reading.name }}</th>
+						<td><a href="{% url 'pr_device_probe' device.device_id reading.full_probe_name %}">{{ reading.name }}</a></th>
 						<td class="text-center">{% pr_date_ago reading.last_update %}</td>
 						<td class="text-center">{{ reading.num_readings }}</td>
 						<td class="text-center">{% pr_frequency reading.frequency %}</td>

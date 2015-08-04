@@ -1,0 +1,52 @@
+{% load static from staticfiles %}
+<div class="col-md-12" style="padding: 0; border: thin solid blue;">
+	<script type="text/javascript" src="http://maps.google.com/maps/api/js?sensor=false"></script>
+	<script type="text/javascript" src="{% static 'vendor/heatmap.js' %}"></script>
+	<script type="text/javascript" src="{% static 'vendor/heatmap-gmap.js' %}"></script>
+	<script type="text/javascript">
+		$(document).ready(function()
+		{
+			var myOptions = {
+			  zoom: 4,
+			  mapTypeId: google.maps.MapTypeId.HYBRID,
+			  disableDefaultUI: false,
+			  scrollwheel: true,
+			  draggable: true,
+			  navigationControl: true,
+			  mapTypeControl: true,
+			  scaleControl: true,
+			  disableDoubleClickZoom: false
+			};
+
+			var map = new google.maps.Map($("#google_map")[0], myOptions);
+			
+			var bounds = new google.maps.LatLngBounds();
+
+			{% for reading in readings %}
+				{% with value=reading.payload_value %}
+					bounds.extend(new google.maps.LatLng({{ value.LATITUDE }}, {{ value.LONGITUDE }}));
+				{% endwith %}
+			{% endfor %}
+			
+			map.setCenter(bounds.getCenter());
+			map.fitBounds(bounds); 
+
+			var heatmap = new HeatmapOverlay(map, {
+					"radius": 10,
+					"visible": true, 
+					"opacity": 75
+			});
+
+			var data = { max: 5, data:{{ heat_report|safe }} };
+
+			// this is important, because if you set the data set too early, the latlng/pixel projection doesn't work
+			google.maps.event.addListenerOnce(map, "idle", function(){
+				heatmap.setDataSet(data);
+			});
+			google.maps.event.addListener(map, "idle", function(){
+				heatmap.draw();
+			});
+		});
+	</script>
+	<div class="google_map" id="google_map" style="height: 480px;"></div>
+</div>

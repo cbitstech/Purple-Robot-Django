@@ -7,6 +7,7 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponse, UnreadablePostError
 from django.shortcuts import render_to_response, get_object_or_404, redirect
 from django.template import RequestContext
+from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_exempt
 
 from forms import ExportJobForm
@@ -14,6 +15,7 @@ from models import PurpleRobotPayload, PurpleRobotTest, PurpleRobotEvent, \
                    PurpleRobotReport, PurpleRobotExportJob, PurpleRobotReading, \
                    PurpleRobotConfiguration, PurpleRobotDevice, PurpleRobotDeviceGroup
 
+@never_cache
 def config(request):
     config = None
     
@@ -49,48 +51,62 @@ def config(request):
     return HttpResponse(config.contents, content_type=content_type)
 
 @csrf_exempt
+@never_cache
 def ingest_payload(request):
     result = {}
     result['Status'] = 'error'
     result['Payload'] = "{}"
     
-    try:
-        json_str = request.POST['json']
+    if request.method == 'POST':
+        try:
+            json_str = request.POST['json']
         
-        json_obj = json.loads(json_str)
+            json_obj = json.loads(json_str)
         
-        payload_str = json_obj['Payload']
+            payload_str = json_obj['Payload']
            
-        m = hashlib.md5()
-        m.update((json_obj['UserHash'] + json_obj['Operation'] + json_obj['Payload']).encode('utf-8'))
-        
-        checksum_str = m.hexdigest()
-        
-        result = {}
-        result['Status'] = 'error'
-        result['Payload'] = "{}"
-        
-        if checksum_str == json_obj['Checksum']:
-            result['Status'] = 'success'
-            
-            payload_json = json.loads(payload_str)
-        
-            payload = PurpleRobotPayload(payload=json.dumps(payload_json, indent=2, ensure_ascii=False), user_id=json_obj['UserHash'])
-            payload.save()
-        
             m = hashlib.md5()
-            m.update(result['Status'] + result['Payload'])
+            m.update((json_obj['UserHash'] + json_obj['Operation'] + json_obj['Payload']).encode('utf-8'))
         
-            result['Checksum'] = m.hexdigest()
-        else:
-            result['Error'] = 'Source checksum ' + json_obj['Checksum'] + ' doesn\'t match destination checksum ' + checksum_str + '.'
-    except Exception, e:
-        result['Error'] = str(e)
+            checksum_str = m.hexdigest()
+        
+            result = {}
+            result['Status'] = 'error'
+            result['Payload'] = "{}"
+        
+            if checksum_str == json_obj['Checksum']:
+                result['Status'] = 'success'
+            
+                payload_json = json.loads(payload_str)
+            
+                payload = PurpleRobotPayload(payload=json.dumps(payload_json, indent=2, ensure_ascii=False), user_id=json_obj['UserHash'])
+                payload.save()
+        
+                m = hashlib.md5()
+                m.update(result['Status'] + result['Payload'])
+        
+                result['Checksum'] = m.hexdigest()
+            
+                if 'media_url' in payload_str:
+                    payload.ingest_readings()
+                    for k, v in request.FILES.iteritems():
+                        reading = PurpleRobotReading.objects.filter(guid=k).first()
+                        
+                        if reading != None:
+                            reading.attachment.save(v.name, v)
+            else:
+                result['Error'] = 'Source checksum ' + json_obj['Checksum'] + ' doesn\'t match destination checksum ' + checksum_str + '.'
+        except Exception, e:
+            result['Error'] = str(e)
+    else:
+        result['Error'] = 'GET requests not supported.'
+    
         
     return HttpResponse(json.dumps(result), content_type='application/json')
 
 
 @csrf_exempt
+@never_cache
 def ingest_payload_print(request):
     result = {}
     result['Status'] = 'error'
@@ -130,6 +146,7 @@ def ingest_payload_print(request):
     return HttpResponse(json.dumps(result), content_type='application/json')
 
 @csrf_exempt
+@never_cache
 def log_event(request):
     try:
         payload = json.loads(request.POST['json'])
@@ -157,6 +174,7 @@ def log_event(request):
     return HttpResponse(json.dumps({ 'result': 'error', 'message': 'Unknown error' }), content_type='application/json')
 
 @staff_member_required
+@never_cache
 def test_report(request, slug):
     c = RequestContext(request)
     
@@ -165,6 +183,7 @@ def test_report(request, slug):
     return render_to_response('purple_robot_test.html', c)
 
 @staff_member_required
+@never_cache
 def tests_by_user(request, user_id):
     c = RequestContext(request)
     
@@ -180,6 +199,7 @@ def tests_by_user(request, user_id):
     return render_to_response('purple_robot_tests.html', c)
 
 @staff_member_required
+@never_cache
 def tests_all(request):
     c = RequestContext(request)
     
@@ -195,6 +215,7 @@ def tests_all(request):
     return render_to_response('purple_robot_tests.html', c)
 
 @staff_member_required
+@never_cache
 def pr_home(request):
     c = RequestContext(request)
     
@@ -203,6 +224,7 @@ def pr_home(request):
     return render_to_response('purple_robot_home.html', c)
 
 @staff_member_required
+@never_cache
 def pr_device(request, device_id):
     c = RequestContext(request)
     
@@ -211,11 +233,28 @@ def pr_device(request, device_id):
     return render_to_response('purple_robot_device.html', c)
 
 @staff_member_required
+@never_cache
+def pr_device_probe(request, device_id, probe_name):
+    c = RequestContext(request)
+    
+    c['device'] = PurpleRobotDevice.objects.get(device_id=device_id)
+    c['probe_name'] = probe_name
+    c['short_name'] = probe_name.split('.')[-1]
+    c['last_reading'] = PurpleRobotReading.objects.filter(user_id=c['device'].user_hash, probe=probe_name).order_by('-logged').first()
+    c['test'] = PurpleRobotTest.objects.filter(user_id=c['device'].user_hash, probe=probe_name).first()
+    c['last_readings'] = PurpleRobotReading.objects.filter(user_id=c['device'].user_hash, probe=probe_name).order_by('-logged')[:500]
+    c['visualization'] = c['device'].visualization_for_probe(probe_name)
+
+    return render_to_response('purple_robot_device_probe.html', c)
+
+@staff_member_required
+@never_cache
 def pr_by_probe(request):
     return render_to_response('purple_robot_probe.html')
 
 
 @staff_member_required
+@never_cache
 def pr_by_user(request):
     users = {}
     
@@ -241,6 +280,7 @@ def pr_by_user(request):
 
 
 @staff_member_required
+@never_cache
 def test_details_json(request, slug):
     results = []
     
@@ -332,12 +372,14 @@ def test_details_json(request, slug):
     return HttpResponse(json.dumps(results), content_type='application/json')
     
 @staff_member_required
+@never_cache
 def fetch_export_file(request, job_pk):
     job = PurpleRobotExportJob.objects.get(pk=int(job_pk))
     
     return redirect(job.export_file.url)
 
 @staff_member_required
+@never_cache
 def create_export_job(request):
     c = RequestContext(request)
 
@@ -380,6 +422,7 @@ def create_export_job(request):
     return render_to_response('purple_robot_export.html', c)
     
 @staff_member_required
+@never_cache
 def pr_add_group(request):
     if request.method == 'POST':
         group_id = request.POST['group_id']
@@ -397,6 +440,7 @@ def pr_add_group(request):
     return redirect(reverse('pr_home'))
 
 @staff_member_required
+@never_cache
 def pr_add_device(request, group_id):
     group = PurpleRobotDeviceGroup.objects.filter(group_id=group_id).first()
 
@@ -419,6 +463,7 @@ def pr_add_device(request, group_id):
     return redirect(reverse('pr_home'))
 
 @staff_member_required
+@never_cache
 def pr_configurations(request):
     c = RequestContext(request)
     c.update(csrf(request))
@@ -429,6 +474,7 @@ def pr_configurations(request):
 
 
 @staff_member_required
+@never_cache
 def pr_configuration(request, config_id):
     c = RequestContext(request)
     c.update(csrf(request))
