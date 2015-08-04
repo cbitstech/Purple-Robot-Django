@@ -5,7 +5,32 @@ from django.template.loader import render_to_string
 def format(probe_name, json_payload):
     item = json.loads(json_payload)
     
-    return 'Heart: ' + str(len(item['HEART'])) + ' Elevation: ' + str(len(item['ELEVATION'])) + ' Distance: ' + str(len(item['DISTANCE'])) + ' Steps: ' + str(len(item['STEPS'])) + ' Floors: ' + str(len(item['FLOORS'])) + ' Calories: ' + str(len(item['CALORIES'])) 
+    heart = '?'
+    steps = '?'
+    distance = '?'
+    calories = '?'
+    floors = '?'
+    elevation = '?'
+    
+    if 'HEART' in item:
+        heart = str(len(item['HEART']))
+
+    if 'STEPS' in item:
+        steps = str(len(item['STEPS']))
+
+    if 'DISTANCE' in item:
+        distance = str(len(item['DISTANCE']))
+
+    if 'CALORIES' in item:
+        calories = str(len(item['CALORIES']))
+
+    if 'FLOORS' in item:
+        floors = str(len(item['FLOORS']))
+
+    if 'ELEVATION' in item:
+        elevation = str(len(item['ELEVATION']))
+
+    return 'Heart: ' + heart + ' Elevation: ' + elevation + ' Distance: ' + distance + ' Steps: ' + steps + ' Floors: ' + floors + ' Calories: ' + calories 
 
 def visualize(probe_name, readings):
     heart = []
