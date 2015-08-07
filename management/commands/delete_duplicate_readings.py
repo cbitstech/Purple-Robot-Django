@@ -28,10 +28,11 @@ class Command(BaseCommand):
         guids = PurpleRobotReading.objects.order_by().values_list('guid', flat=True).distinct()
         
         for guid in guids:
-            count = PurpleRobotReading.objects.filter(guid=guid).count()
-           
-            if count > 1:
-                for match in PurpleRobotReading.objects.filter(guid=guid)[1:]:
-                    match.delete()
+            if guid != None:
+                count = PurpleRobotReading.objects.filter(guid=guid).count()
+               
+                if count > 1:
+                    for match in PurpleRobotReading.objects.filter(guid=guid)[1:]:
+                        match.delete()
 
         os.remove('/tmp/delete_duplicate_readings.lock')

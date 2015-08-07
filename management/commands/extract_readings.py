@@ -29,13 +29,13 @@ class Command(BaseCommand):
 
         tag = 'extracted_readings'
         
-        payloads = PurpleRobotPayload.objects.exclude(process_tags__contains=tag)[:250]
+        payloads = PurpleRobotPayload.objects.exclude(process_tags__contains=tag).order_by('-added')[:250]
         
         while payloads.count() > 0:
             for payload in payloads:
                 payload.ingest_readings()
                     
-            payloads = PurpleRobotPayload.objects.exclude(process_tags__contains=tag)[:250]
+            payloads = PurpleRobotPayload.objects.exclude(process_tags__contains=tag).order_by('-added')[:250]
             
         readings = PurpleRobotReading.objects.filter(guid=None)[:250]
         

@@ -234,6 +234,21 @@ def pr_device(request, device_id):
 
 @staff_member_required
 @never_cache
+def pr_device_probe(request, device_id, probe_name):
+    c = RequestContext(request)
+    
+    c['device'] = PurpleRobotDevice.objects.get(device_id=device_id)
+    c['probe_name'] = probe_name
+    c['short_name'] = probe_name.split('.')[-1]
+    c['last_reading'] = PurpleRobotReading.objects.filter(user_id=c['device'].user_hash, probe=probe_name).order_by('-logged').first()
+    c['test'] = PurpleRobotTest.objects.filter(user_id=c['device'].user_hash, probe=probe_name).first()
+    c['last_readings'] = PurpleRobotReading.objects.filter(user_id=c['device'].user_hash, probe=probe_name).order_by('-logged')[:500]
+    c['visualization'] = c['device'].visualization_for_probe(probe_name)
+
+    return render_to_response('purple_robot_device_probe.html', c)
+
+@staff_member_required
+@never_cache
 def pr_by_probe(request):
     return render_to_response('purple_robot_probe.html')
 
