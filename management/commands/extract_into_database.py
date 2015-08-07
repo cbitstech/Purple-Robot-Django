@@ -11,17 +11,32 @@ from purple_robot_app.models import PurpleRobotReading, PurpleRobotPayload
 def my_slugify(str_obj):
     return slugify(str_obj.replace('.', ' ')).replace('-', '_')
 
+def touch(fname, mode=0o666, dir_fd=None, **kwargs):
+    flags = os.O_CREAT | os.O_APPEND
+    
+    with os.fdopen(os.open(fname, flags, mode)) as f:
+        os.utime(fname, None)
+
 class Command(BaseCommand):
     def handle(self, *args, **options):
         try:
             settings.PURPLE_ROBOT_FLAT_MIRROR
         except AttributeError:
             return
-        
-        if os.access('/tmp/extracted_into_database.lock', os.R_OK):
-            return
+
+        open('/tmp/extract_into_database.lock', 'wa').close() 
+
+        if os.access('/tmp/extract_into_database.lock', os.R_OK):
+            t = os.path.getmtime('/tmp/extract_into_database.lock')
+            created = datetime.datetime.fromtimestamp(t)
+            
+            if (datetime.datetime.now() - created).total_seconds() > 120:
+                print('extract_into_database: Stale lock - removing...')
+                os.remove('/tmp/extract_into_database.lock')
+            else:
+                return
     
-        open('/tmp/extracted_into_database.lock', 'wa').close() 
+        touch('/tmp/extract_into_database.lock')
 
         tag = 'extracted_into_database'
         skip_tag = 'extracted_into_database_skip'
@@ -86,4 +101,4 @@ class Command(BaseCommand):
                 
             payloads = PurpleRobotPayload.objects.exclude(process_tags__contains=tag).exclude(process_tags__contains=skip_tag).order_by('-added')[:100]
             
-        os.remove('/tmp/extracted_into_database.lock')
+        os.remove('/tmp/extract_into_database.lock')
