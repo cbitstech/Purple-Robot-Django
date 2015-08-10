@@ -1,0 +1,1 @@
+Purple Robot: {% if alerts.count == 1 %}One alert needs{% else %}{{ alerts.count }} alerts need{% endif %} attention
