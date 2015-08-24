@@ -49,9 +49,11 @@ class Command(BaseCommand):
 
         requests.packages.urllib3.disable_warnings()
         
+        reflected_payloads = []
+        
         try:
-            for orig_hash, config in settings.PR_REDIRECT_ENDPOINT_MAP.iteritems():
-                payloads = PurpleRobotPayload.objects.filter(user_id=orig_hash).exclude(process_tags__contains=tag)[:50]
+            for config in settings.PR_REDIRECT_ENDPOINT_MAP:
+                payloads = PurpleRobotPayload.objects.filter(user_id=config['hash']).exclude(process_tags__contains=tag)[:50]
             
                 if payloads.count() > 0:
                     if PRINT_PROGRESS:
@@ -92,19 +94,23 @@ class Command(BaseCommand):
                         response_obj = json.loads(response.text)
                     
                         if response_obj['Status'] == 'success':
-                            tags = pr_payload.process_tags
-            
-                            if tags is None or tags.find(tag) == -1:
-                                if tags is None or len(tags) == 0:
-                                    tags = tag
-                                else:
-                                    tags += ' ' + tag
+                            reflected_payloads.append(pr_payload)
+                            
+                            touch('/tmp/reflected_payload.lock')
+                            
+            for pr_payload in reflected_payloads:
+                tags = pr_payload.process_tags
+
+                if tags is None or tags.find(tag) == -1:
+                    if tags is None or len(tags) == 0:
+                        tags = tag
+                    else:
+                        tags += ' ' + tag
+        
+                    pr_payload.process_tags = tags
+    
+                    pr_payload.save()
                     
-                                pr_payload.process_tags = tags
-                
-                                pr_payload.save()
-                                
-                                touch('/tmp/reflected_payload.lock')
         except ConnectionError:
             pass
         except ReadTimeout:
