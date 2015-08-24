@@ -80,6 +80,11 @@ def insert(connection_str, user_id, reading):
     if 'BLUETOOTH_MAC' in reading:
         bluetooth_mac = reading['BLUETOOTH_MAC']
     
+    wifi_mac = None
+    
+    if 'WIFI_MAC' in reading:
+        wifi_mac = reading['WIFI_MAC']
+        
     cursor.execute(reading_cmd, (user_id, \
                                  reading['GUID'], \
                                  reading['TIMESTAMP'], \
@@ -95,7 +100,7 @@ def insert(connection_str, user_id, reading):
                                  reading['FINGERPRINT'], \
                                  reading['DEVICE'], \
                                  reading['MODEL'], \
-                                 reading['WIFI_MAC'], \
+                                 wifi_mac, \
                                  reading['DISPLAY'], \
                                  reading['ID'], \
                                  reading['MANUFACTURER']))

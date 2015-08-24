@@ -71,6 +71,29 @@ def insert(connection_str, user_id, reading):
                                                    'network_type, ' + \
                                                    'service_state, ' + \
                                                    'is_forwarding) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id;'
+    cid = None
+    if 'cid' in reading:
+        cid = reading['cid']
+
+    psc = None
+    if 'psc' in reading:
+        psc = reading['psc']
+
+    lac = None
+    if 'lac' in reading:
+        lac = reading['lac']
+
+    device_software_version = None
+    if 'DEVICE_SOFTWARE_VERSION' in reading:
+        device_software_version = reading['DEVICE_SOFTWARE_VERSION']
+
+    gsm_strength = None
+    if 'GSM_SIGNAL_STRENGTH' in reading:
+        gsm_strength = reading['GSM_SIGNAL_STRENGTH']
+
+    gsm_error = None
+    if 'GSM_ERROR_RATE' in reading:
+        gsm_error = reading['GSM_ERROR_RATE']
 
     cursor.execute(reading_cmd, (user_id, \
                                  reading['GUID'], \
@@ -79,17 +102,17 @@ def insert(connection_str, user_id, reading):
                                  reading['NETWORK_COUNTRY_ISO'], \
                                  reading['PHONE_TYPE'], \
                                  reading['SIM_STATE'], \
-                                 reading['cid'], \
+                                 cid, \
                                  reading['NETWORK_OPERATOR'], \
                                  reading['HAS_ICC_CARD'], \
                                  reading['SIM_COUNTRY_ISO'], \
-                                 reading['lac'], \
+                                 lac, \
                                  reading['CALL_STATE'], \
-                                 reading['GSM_SIGNAL_STRENGTH'], \
+                                 gsm_strength, \
                                  reading['SIM_OPERATOR_NAME'], \
-                                 reading['psc'], \
-                                 reading['DEVICE_SOFTWARE_VERSION'], \
-                                 reading['GSM_ERROR_RATE'], \
+                                 psc, \
+                                 device_software_version, \
+                                 gsm_error, \
                                  reading['NETWORK_TYPE'], \
                                  reading['SERVICE_STATE'], \
                                  reading['IS_FORWARDING']))
