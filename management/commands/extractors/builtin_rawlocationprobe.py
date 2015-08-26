@@ -71,8 +71,16 @@ def insert(connection_str, user_id, reading):
     
     values.append(reading['ACCURACY'])
     values.append(reading['PROVIDER'])
-    values.append(reading['NETWORK_AVAILABLE'])
-    values.append(reading['GPS_AVAILABLE'])
+        
+    if 'NETWORK_AVAILABLE' in reading:
+        values.append(reading['NETWORK_AVAILABLE'])
+    else:
+        values.append(None)
+
+    if 'GPS_AVAILABLE' in reading:
+        values.append(reading['GPS_AVAILABLE'])
+    else:
+        values.append(None)
     
     cursor.execute(reading_cmd, values)
 

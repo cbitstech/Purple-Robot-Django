@@ -26,12 +26,10 @@ class Command(BaseCommand):
             return
 
         if os.access('/tmp/extract_into_database.lock', os.R_OK):
-            return
-            
             t = os.path.getmtime('/tmp/extract_into_database.lock')
             created = datetime.datetime.fromtimestamp(t)
             
-            if (datetime.datetime.now() - created).total_seconds() > 120:
+            if (datetime.datetime.now() - created).total_seconds() > 60 * 60 * 3:
                 print('extract_into_database: Stale lock - removing...')
                 os.remove('/tmp/extract_into_database.lock')
             else:
@@ -46,7 +44,7 @@ class Command(BaseCommand):
         
         index = 0
         
-        while payloads.count() > 0 and index < 10:
+        while payloads.count() > 0 and index < 50:
             index += 1
             
             for payload in payloads:
