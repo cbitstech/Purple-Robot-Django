@@ -15,6 +15,11 @@ CREATE_ACTIVITY_UTC_LOGGED_INDEX = 'CREATE INDEX ON builtin_activitydetectionpro
 
 def exists(connection_str, user_id, reading):
     conn = psycopg2.connect(connection_str)
+
+    if probe_table_exists(conn) == False or activity_table_exists(conn) == False:
+        conn.close()
+        return False
+
     cursor = conn.cursor()
 
     cursor.execute('SELECT id FROM builtin_activitydetectionprobe WHERE (user_id = %s AND guid = %s);', (user_id, reading['GUID']))

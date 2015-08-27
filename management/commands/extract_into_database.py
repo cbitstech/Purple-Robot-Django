@@ -25,13 +25,11 @@ class Command(BaseCommand):
         except AttributeError:
             return
 
-        open('/tmp/extract_into_database.lock', 'wa').close() 
-
         if os.access('/tmp/extract_into_database.lock', os.R_OK):
             t = os.path.getmtime('/tmp/extract_into_database.lock')
             created = datetime.datetime.fromtimestamp(t)
             
-            if (datetime.datetime.now() - created).total_seconds() > 120:
+            if (datetime.datetime.now() - created).total_seconds() > 60 * 60 * 3:
                 print('extract_into_database: Stale lock - removing...')
                 os.remove('/tmp/extract_into_database.lock')
             else:
@@ -42,12 +40,15 @@ class Command(BaseCommand):
         tag = 'extracted_into_database'
         skip_tag = 'extracted_into_database_skip'
         
-        # payloads = PurpleRobotPayload.objects.exclude(process_tags__contains=tag).exclude(process_tags__contains=skip_tag).order_by('added')[:100]
         payloads = PurpleRobotPayload.objects.exclude(process_tags__contains=tag).order_by('-added')[:100]
         
-        while payloads.count() > 0:
+        index = 0
+        
+        while payloads.count() > 0 and index < 50:
+            index += 1
+            
             for payload in payloads:
-                print('PAYLOAD ' + str(payload.added) + ' / ' + str(payload.pk))
+                # print('PAYLOAD ' + str(payload.added) + ' / ' + str(payload.pk))
                 
                 items = json.loads(payload.payload)
                 
@@ -55,23 +56,47 @@ class Command(BaseCommand):
                 missing_extractors = []
 
                 for item in items:
-                    probe_name = my_slugify(item['PROBE']).replace('edu_northwestern_cbits_purple_robot_manager_probes_', '')
+                    if 'PROBE' in item and 'GUID' in item:
+                        probe_name = my_slugify(item['PROBE']).replace('edu_northwestern_cbits_purple_robot_manager_probes_', '')
                     
-                    try:
-                        probe = importlib.import_module('purple_robot_app.management.commands.extractors.' + probe_name)
-                    except ImportError:
+                        found = False
+                        
+                        for app in settings.INSTALLED_APPS:
+                            try:
+                                importlib.import_module(app + '.management.commands.extractors.' + probe_name)
+                                
+                                found = True
+                            except ImportError:
+                                pass
+                                
+                        if found == False:
+                            has_all_extractors = False
+                            
+                            if (probe_name in missing_extractors) == False:
+                                missing_extractors.append(probe_name)
+                    else:
                         has_all_extractors = False
-                        missing_extractors.append(probe_name)
+                        missing_extractors.append('Unknown Probe')
                         
                 if has_all_extractors:
                     for item in items:
-                        probe_name = my_slugify(item['PROBE']).replace('edu_northwestern_cbits_purple_robot_manager_probes_', '')
+                        if 'PROBE' in item and 'GUID' in item:
+                            probe = None
+                            
+                            probe_name = my_slugify(item['PROBE']).replace('edu_northwestern_cbits_purple_robot_manager_probes_', '')
+                            
+                            for app in settings.INSTALLED_APPS:
+                                try:
+                                    if probe == None:
+                                        probe = importlib.import_module(app + '.management.commands.extractors.' + probe_name)
+                            
+                                        found = True
+                                except ImportError:
+                                    pass
                     
-                        probe = importlib.import_module('purple_robot_app.management.commands.extractors.' + probe_name)
-                    
-                        if probe.exists(settings.PURPLE_ROBOT_FLAT_MIRROR, payload.user_id, item) == False:
-                            # print('PROBE: ' + probe_name)                
-                            probe.insert(settings.PURPLE_ROBOT_FLAT_MIRROR, payload.user_id, item)
+                            if probe != None and probe.exists(settings.PURPLE_ROBOT_FLAT_MIRROR, payload.user_id, item) == False:
+                                # print('PROBE: ' + probe_name)                
+                                probe.insert(settings.PURPLE_ROBOT_FLAT_MIRROR, payload.user_id, item)
 
                     tags = payload.process_tags
                 

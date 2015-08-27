@@ -1,0 +1,89 @@
+{% load static from staticfiles %}
+<div id="screen_chart" style="border: 1px solid #808080; height: 180px; width: 100%; overflow: hidden;">
+	<script type="text/javascript">
+		$(document).ready(function () {
+		    $('[data-toggle="tooltip"]').tooltip();
+		    
+		    {% autoescape off %}
+		    	var data = {{ screen_report }};		    			   		    		    
+		    {% endautoescape %}		
+		    var screenSeries = data;		  		    
+		    screenSeries.sort(function(a, b) {
+	    	    return parseFloat(a.x) - parseFloat(b.x);
+	    	});
+		    
+		    var srs_len = screenSeries.length;
+		    var start = screenSeries[0].x - (60 * 60 * 2);		    
+		    var end = screenSeries[srs_len-1].x + (60 * 60 * 1);
+		     
+		    var graph = new Rickshaw.Graph({
+		        element: document.getElementById("screen_chart"),
+		        height: 180,
+		        min: -0.25,
+		        interpolation: "step-after",
+		        width: $("div#screen_chart").width(),
+		        renderer: 'lineplot',
+		        series: [{
+		            color: "#2E79B9",
+		            data: screenSeries,
+		            name: 'Screen Active'
+		        }, {
+		            data: [{
+		                x: start,
+		                y: null
+		            }, {
+		                x: end,
+		                y: null
+		            }]
+		        }
+	
+		        ],
+		        padding: {
+		            top: 0.25,
+		            bottom: 0.25
+		        }
+		    });
+			
+		    var timeUnit = {
+		        'name': '4 hour',
+		            'seconds': 3600 * 4,
+		            'formatter': function (d) {
+		            return moment(d).format('h:mm a');
+		        }
+		    };
+	
+		    var x_axis = new Rickshaw.Graph.Axis.Time({
+		        graph: graph,
+		        timeUnit: timeUnit
+		    });
+	
+		    var yAxis = new Rickshaw.Graph.Axis.Y({
+		        graph: graph,
+		        tickFormat: function (y) {
+		            if (y == 1) {
+		                return "active";
+		            } else if (y == 0) {
+		                return "inactive";
+		            }
+		        }
+		    });
+	
+		    var hoverDetail = new Rickshaw.Graph.HoverDetail({
+		        graph: graph,
+		        onShow: function (event) {
+		            var text = $(".x_label").text();
+		            var parenIndex = text.indexOf(")");
+		            text = text.substring(0, parenIndex + 1);
+		        },
+		        xFormatter: function (x) {
+		            var date = new Date(x * 1000);
+		            return "" + date
+		        },
+		        yFormatter: function (y) {
+		            return y
+		        }
+		    });
+		    graph.render();
+		});
+	</script>	
+</div>

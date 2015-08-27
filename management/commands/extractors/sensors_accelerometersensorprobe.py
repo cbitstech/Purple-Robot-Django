@@ -131,37 +131,40 @@ def insert(connection_str, user_id, reading):
                 readings_file = None
                 
             if readings_file != None:
-                content = list(msgpack.Unpacker(readings_file))
+                try:
+                    content = list(msgpack.Unpacker(readings_file))
             
-                if len(content) == 8:
-                    time_buffer = content[1]
-                    sensor_time_buffer = content[2]
-                    normal_time_buffer = content[3]
-                    accuracy_buffer = content[4]
-                    x_buffer = content[5]
-                    y_buffer = content[6]
-                    z_buffer = content[7]
+                    if len(content) == 8:
+                        time_buffer = content[1]
+                        sensor_time_buffer = content[2]
+                        normal_time_buffer = content[3]
+                        accuracy_buffer = content[4]
+                        x_buffer = content[5]
+                        y_buffer = content[6]
+                        z_buffer = content[7]
             
-                    for i in range(0, len(time_buffer)):
-                        values = [ user_id, reading_id, datetime.datetime.fromtimestamp(reading['TIMESTAMP'], tz=pytz.utc) ]
+                        for i in range(0, len(time_buffer)):
+                            values = [ user_id, reading_id, datetime.datetime.fromtimestamp(reading['TIMESTAMP'], tz=pytz.utc) ]
                 
-                        values.append(time_buffer[i])
-                        values.append(datetime.datetime.fromtimestamp(time_buffer[i], tz=pytz.utc))
+                            values.append(time_buffer[i])
+                            values.append(datetime.datetime.fromtimestamp(time_buffer[i], tz=pytz.utc))
         
-                        values.append(sensor_time_buffer[i])
-                        try:
-                            values.append(datetime.datetime.fromtimestamp((sensor_time_buffer[i] / 1000), tz=pytz.utc))
-                        except ValueError:
-                            values.append(datetime.datetime.fromtimestamp((sensor_time_buffer[i] / (1000 * 1000 * 1000)), tz=pytz.utc))
+                            values.append(sensor_time_buffer[i])
+                            try:
+                                values.append(datetime.datetime.fromtimestamp((sensor_time_buffer[i] / 1000), tz=pytz.utc))
+                            except ValueError:
+                                values.append(datetime.datetime.fromtimestamp((sensor_time_buffer[i] / (1000 * 1000 * 1000)), tz=pytz.utc))
 
-                        values.append(normal_time_buffer[i])
-                        values.append(datetime.datetime.fromtimestamp(normal_time_buffer[i], tz=pytz.utc))
-                        values.append(x_buffer[i])
-                        values.append(y_buffer[i])
-                        values.append(z_buffer[i])
-                        values.append(accuracy_buffer[i])
+                            values.append(normal_time_buffer[i])
+                            values.append(datetime.datetime.fromtimestamp(normal_time_buffer[i], tz=pytz.utc))
+                            values.append(x_buffer[i])
+                            values.append(y_buffer[i])
+                            values.append(z_buffer[i])
+                            values.append(accuracy_buffer[i])
         
-                        reading_cursor.execute(reading_cmd, values)
+                            reading_cursor.execute(reading_cmd, values)
+                except ValueError:
+                    pass
 
     conn.commit()
         

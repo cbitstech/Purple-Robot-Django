@@ -17,27 +17,28 @@
 
 		<h3>Pending Files</h3>
 		<div id="pending_chart" style="border: 1px solid #808080; height: 180px; width: 100%; overflow: hidden;"></div>
-
-		<div style="margin: 2em 0 0 0; padding: 0;">
-			<h3 id="toolbar_events" style="margin: 0; padding: 0;">Last 500 Readings</h3>
-		
-			<table class="table" data-toggle="table" data-pagination="true" data-search="true" data-toolbar="#toolbar_events">
-				<thead>
-					<tr>
-						<th>Date</th>
-						<th>Value</th>
-					</tr>
-				</thead>
-				<tbody>
-					{% for reading in last_readings %}
+		{% autoescape off %}
+			<div style="margin: 2em 0 0 0; padding: 0;">
+				<h3 id="toolbar_events" style="margin: 0; padding: 0;">Last 500 Readings</h3>
+			
+				<table class="table" data-toggle="table" data-pagination="true" data-search="true" data-toolbar="#toolbar_events">
+					<thead>
 						<tr>
-							<td>{{ reading.logged }}</td>
-							<td>{{ reading.fetch_summary }}</td>
+							<th>Date</th>
+							<th>Value</th>
 						</tr>
-					{% endfor %}
-				</tbody>
-			</table>
-		</div>
+					</thead>
+					<tbody>
+						{% for reading in last_readings %}
+							<tr>
+								<td>{{ reading.logged }}</td>
+								<td>{{ reading.fetch_summary }}</td>
+							</tr>
+						{% endfor %}
+					</tbody>
+				</table>
+			</div>
+		{% endautoescape %}
 	</div>
 	<div class="col-md-3">
 		<h4 style="margin-top: 0;">Details</h4>

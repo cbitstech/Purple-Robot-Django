@@ -1,0 +1,68 @@
+{% load static from staticfiles %}
+<div id="sun_chart" style="border: 1px solid #808080; height: 180px; width: 100%; overflow: hidden;">
+	<script type="text/javascript">
+		$(document).ready(function () {
+		    $('[data-toggle="tooltip"]').tooltip(); 
+		    {% autoescape off %}
+			    var sun_data = {{ sun_report }};
+			    var daylight_data = {{ daylight_report }}; 
+		    {% endautoescape %}
+					    
+		    sun_data.sort(function (a, b) {
+		        return parseFloat(a.x) - parseFloat(b.x);
+		    });		  
+		    daylight_data.sort(function (a, b) {
+		        return parseFloat(a.x) - parseFloat(b.x);
+		    });
+		
+		    var seriesData = [sun_data,daylight_data];
+		
+		    var graph = new Rickshaw.Graph({
+		        element: document.getElementById("sun_chart"),
+		        renderer: 'multi',
+		        width: $("div#sun_chart").width(),
+		        height: 180,
+		        max: 18,
+		        min: -18,
+		        interpolation: "linear",
+		        dotSize: 4,
+		        series: [{
+		            name: 'sun',
+		            data: seriesData.shift(),
+		            color: 'rgba(255, 0, 0, 0.4)',
+		            renderer: 'line'
+		        },{
+		            name: 'daylight hours',
+		            data: seriesData.shift(),
+		            renderer: 'line',
+		            color: 'rgba(0, 0, 127, 0.25)'
+		        }]
+		    });
+		    
+		    var timeUnit = {
+					'name': '72 hour', 
+					'seconds': 3600 * 72, 
+					'formatter': function(d)
+					{ 
+						return moment(d).format('MMMM D, YYYY');
+					}
+				};
+				
+			var x_axis = new Rickshaw.Graph.Axis.Time( { graph: graph, timeUnit: timeUnit } );
+			
+			var yAxis = new Rickshaw.Graph.Axis.Y({
+		        graph: graph,
+		        tickFormat: function (y) {
+		            if (y == 0) {
+		                return "0";
+		            }
+		        }
+		    });
+			
+			var detail = new Rickshaw.Graph.HoverDetail({
+		        graph: graph
+		    });
+		    graph.render();
+		});
+	</script>	
+</div>
