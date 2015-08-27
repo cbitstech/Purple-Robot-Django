@@ -1,6 +1,6 @@
 The following alerts are active in the Purple Robot dashboard:
 
-{% for name, device_alerts in devices.items %}{{ name|safe }}:
-{% for alert in device_alerts %}{{ alert.message|safe }} ({{ alert.generated }})
+{% for name, device_alerts in devices.items %}{{ device_alerts.0.1.name|safe }} ({{ device_alerts.0.1.device_id }}):
+{% for alert in device_alerts %}{{ alert.0.message|safe }} ({{ alert.0.generated }})
 {% endfor %}
 {% endfor %}
