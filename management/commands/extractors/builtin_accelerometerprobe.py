@@ -17,6 +17,10 @@ def exists(connection_str, user_id, reading):
     conn = psycopg2.connect(connection_str)
     cursor = conn.cursor()
 
+    if probe_table_exists(conn) == False or reading_table_exists(conn) == False:
+        conn.close()
+        return False
+
     cursor.execute('SELECT id FROM builtin_accelerometerprobe WHERE (user_id = %s AND guid = %s);', (user_id, reading['GUID']))
     
     exists = (cursor.rowcount > 0)

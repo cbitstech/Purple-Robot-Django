@@ -56,6 +56,11 @@ CREATE_TRIGGER_UTC_LOGGED_INDEX = 'CREATE INDEX ON builtin_robothealthprobe_trig
 
 def exists(connection_str, user_id, reading):
     conn = psycopg2.connect(connection_str)
+
+    if probe_table_exists(conn) == False or warning_table_exists(conn) == False or trigger_table_exists(conn) == False or trigger_table_exists(conn) == False:
+        conn.close()
+        return False
+
     cursor = conn.cursor()
 
     cursor.execute('SELECT id FROM builtin_robothealthprobe WHERE (user_id = %s AND guid = %s);', (user_id, reading['GUID']))
@@ -145,6 +150,16 @@ def insert(connection_str, user_id, reading):
                                                        'app_version_name, ' + \
                                                        'json_config, ' + \
                                                        'scheme_config) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id;'
+    
+    external_total = None
+                                                       
+    if 'EXTERNAL_TOTAL'in reading:
+        external_total = reading['EXTERNAL_TOTAL']
+
+    external_free = None
+                                                       
+    if 'EXTERNAL_FREE'in reading:
+        external_free = reading['EXTERNAL_FREE']
 
     data = (user_id, \
             reading['GUID'], \
@@ -155,8 +170,8 @@ def insert(connection_str, user_id, reading):
             reading['ACTIVE_RUNTIME'], \
             reading['ROOT_TOTAL'], \
             reading['ROOT_FREE'], \
-            reading['EXTERNAL_TOTAL'], \
-            reading['EXTERNAL_FREE'], \
+            external_total, \
+            external_free, \
             reading['PENDING_SIZE'], \
             reading['PENDING_COUNT'], \
             reading['CLEAR_TIME'], \

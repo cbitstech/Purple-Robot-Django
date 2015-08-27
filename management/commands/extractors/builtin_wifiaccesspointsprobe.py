@@ -15,6 +15,11 @@ CREATE_ACCESS_POINT_UTC_LOGGED_INDEX = 'CREATE INDEX ON builtin_wifiaccesspoints
 
 def exists(connection_str, user_id, reading):
     conn = psycopg2.connect(connection_str)
+
+    if probe_table_exists(conn) == False or access_point_table_exists(conn) == False:
+        conn.close()
+        return False
+
     cursor = conn.cursor()
 
     cursor.execute('SELECT id FROM builtin_wifiaccesspointsprobe WHERE (user_id = %s AND guid = %s);', (user_id, reading['GUID']))
