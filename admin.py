@@ -66,5 +66,6 @@ admin.site.register(PurpleRobotDevice, PurpleRobotDeviceAdmin)
 class PurpleRobotAlertAdmin(admin.ModelAdmin):
     list_display = ('message', 'severity', 'tags', 'action_url', 'probe', 'user_id', 'generated', 'dismissed', 'manually_dismissed')
     list_filter = ['severity', 'user_id', 'generated', 'dismissed', 'manually_dismissed']
+    search_fields = ['message', 'tags']
     
 admin.site.register(PurpleRobotAlert, PurpleRobotAlertAdmin)
