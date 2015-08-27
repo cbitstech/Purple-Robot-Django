@@ -1,0 +1,94 @@
+{% load static from staticfiles %}
+<div id="comm_chart" style="border: 1px solid #808080; height: 180px; width: 100%; overflow: hidden;">
+	<script type="text/javascript">
+		$(document).ready(function () {
+		    $('[data-toggle="tooltip"]').tooltip(); 
+		    {% autoescape off %}
+			    var phone_out_data = {{ phone_out_report }};
+			    var phone_in_data = {{ phone_in_report }};
+			    var sms_out_data = {{ sms_out_report }};
+			    var sms_in_data = {{ sms_in_report }};
+		    {% endautoescape %}
+		    
+		    phone_out_data.sort(function (a, b) {
+		        return parseFloat(a.x) - parseFloat(b.x);
+		    });
+		    phone_in_data.sort(function (a, b) {
+		        return parseFloat(a.x) - parseFloat(b.x);
+		    });
+		    sms_out_data.sort(function (a, b) {
+		        return parseFloat(a.x) - parseFloat(b.x);
+		    });
+		    sms_in_data.sort(function (a, b) {
+		        return parseFloat(a.x) - parseFloat(b.x);
+		    });
+
+		    var seriesData = [phone_out_data, phone_in_data, sms_out_data, sms_in_data];
+		
+		    var graph = new Rickshaw.Graph({
+		        element: document.getElementById("comm_chart"),
+		        renderer: 'multi',
+		        width: $("div#comm_chart").width(),
+		        height: 180,
+		        max: 4,
+		        min: -1,
+		        interpolation: "scatterplot",
+		        dotSize: 4,
+		        series: [{
+		            name: 'phone - out',
+		            data: seriesData.shift(),
+		            color: 'rgba(255, 0, 0, 0.4)',
+		            renderer: 'scatterplot'
+		        }, {
+		            name: 'phone - in',
+		            data: seriesData.shift(),
+		            color: 'rgba(46, 121, 185, 0.4)',
+		            renderer: 'scatterplot'
+		        }, {
+		            name: 'sms - out',
+		            data: seriesData.shift(),
+		            renderer: 'scatterplot',
+		            color: 'rgba(255, 0, 0, 0.4)'
+		        },{
+		            name: 'sms - in',
+		            data: seriesData.shift(),
+		            renderer: 'scatterplot',		         
+		            color: 'rgba(46, 121, 185, 0.4)'
+		        }],		        
+		    });
+		    var timeUnit = {
+					'name': '24 hour', 
+					'seconds': 3600 * 24, 
+					'formatter': function(d)
+					{ 
+						return moment(d).format('MMMM D, YYYY');
+					}
+				};
+				
+			var x_axis = new Rickshaw.Graph.Axis.Time( { graph: graph, timeUnit: timeUnit } );
+			
+			var yAxis = new Rickshaw.Graph.Axis.Y({
+		        graph: graph,
+		        pixelsPerTick: 25,		      
+		        tickFormat: function (y) {
+		            if (y === 3) {
+		                return "phone - out";
+		            } else if (y === 2) {
+		                return "phone - in";
+		            }  else if (y === 1) {
+		                return "sms - out";
+		            } else if (y === 0)  {
+		                return "sms - in";
+		            }
+		        }
+		    });
+			
+			var detail = new Rickshaw.Graph.HoverDetail({
+		        graph: graph,
+		        yFormatter: function(y) { return Math.floor(y) }
+		    });
+
+		    graph.render(); 
+		});
+	</script>
+</div>
