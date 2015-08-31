@@ -1,9 +1,10 @@
+import datetime
 import json
 import os
 
 from django.core.management.base import BaseCommand
 
-from purple_robot_app.models import PurpleRobotReading
+from purple_robot_app.models import PurpleRobotReading, PurpleRobotDevice
 
 def touch(fname, mode=0o666, dir_fd=None, **kwargs):
     flags = os.O_CREAT | os.O_APPEND
@@ -24,15 +25,22 @@ class Command(BaseCommand):
                 return
 
         touch('/tmp/delete_duplicate_readings.lock')
-
-        guids = PurpleRobotReading.objects.order_by().values_list('guid', flat=True).distinct()
         
-        for guid in guids:
-            if guid != None:
-                count = PurpleRobotReading.objects.filter(guid=guid).count()
+        print('1')
+        for device in PurpleRobotDevice.objects.all().order_by('device_id'):
+            print('2 ' + device.device_id)
+            guids = PurpleRobotReading.objects.filter(user_id=device.hash_key).order_by('guid').values_list('guid', flat=True).distinct()
+
+            print('3 ' + device.device_id + ' -- ' + str(len(guids)))
+        
+            for guid in guids:
+                if guid != None:
+                    count = PurpleRobotReading.objects.filter(guid=guid, user_id=device.hash_key).count()
                
-                if count > 1:
-                    for match in PurpleRobotReading.objects.filter(guid=guid)[1:]:
-                        match.delete()
+                    if count > 1:
+                        print('4 ' + guid + ' -- ' + str(count))
+
+                        for match in PurpleRobotReading.objects.filter(guid=guid)[1:]:
+                            match.delete()
 
         os.remove('/tmp/delete_duplicate_readings.lock')
