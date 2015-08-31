@@ -113,6 +113,8 @@ class Command(BaseCommand):
                     
         except ConnectionError:
             pass
+        except ValueError:
+            pass
         except ReadTimeout:
             pass
                 
