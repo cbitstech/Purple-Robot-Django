@@ -84,15 +84,103 @@ class PurpleRobotDevice(models.Model):
         
         return self.hash_key
         
+    def fetch_reading_count(self, probe):
+        perf_data = json.loads(self.performance_metadata)
+        
+        if ('reading_counts' in perf_data) and (probe in perf_data['reading_counts']):
+            return perf_data['reading_counts'][probe]
+
+        if ('reading_counts' in perf_data) == False:
+            perf_data['reading_counts'] = {}
+            
+        if (probe in perf_data['reading_counts']) == False:
+            cursor = connection.cursor()
+            cursor.execute("SELECT COUNT(logged) FROM \"purple_robot_app_purplerobotreading\" WHERE (\"purple_robot_app_purplerobotreading\".\"probe\" = '%s' AND \"purple_robot_app_purplerobotreading\".\"user_id\" = '%s' );" % (probe, self.hash_key))
+            row = cursor.fetchone()
+            perf_data['reading_counts'][probe] = int(row[0])
+
+            self.performance_metadata = json.dumps(perf_data, indent=2)
+            self.save()
+
+        return perf_data['reading_counts'][probe]
+        
+    def set_most_recent_reading(self, new_reading):
+        perf_data = json.loads(self.performance_metadata)
+
+        old_reading = None
+        updated = False
+        
+        if ('latest_readings' in perf_data) == False:
+            perf_data['latest_readings'] = {}
+        else:
+            old_reading = PurpleRobotReading.objects.filter(pk=perf_data['latest_readings'][new_reading.probe]).first()
+
+        if ('reading_counts' in perf_data) == False:
+            perf_data['reading_counts'] = {}
+            
+        if (new_reading.probe in perf_data['reading_counts']) == False:
+            perf_data['reading_counts'][new_reading.probe] = self.fetch_reading_count(new_reading.probe)
+            
+        perf_data['reading_counts'][new_reading.probe] = perf_data['reading_counts'][new_reading.probe] + 1
+
+        if ('probes' in perf_data) == False:
+            perf_data['probes'] = []
+            
+        if (new_reading.probe in perf_data['probes']) == False:
+            perf_data['probes'].append(new_reading.probe)
+            updated = True
+        
+        if old_reading != None and new_reading.logged > old_reading.logged:
+            perf_data['latest_readings'][new_reading.probe] = new_reading.pk
+            updated = True
+            
+        if updated:
+            self.performance_metadata = json.dumps(perf_data, indent=2)
+            self.save()
+
+    def set_most_recent_payload(self, new_payload):
+        perf_data = json.loads(self.performance_metadata)
+
+        old_payload = None
+        
+        if ('latest_payload' in perf_data) == False:
+            perf_data['latest_payload'] = -1
+        else:
+            old_payload = PurpleRobotPayload.objects.filter(pk=perf_data['latest_payload']).first()
+            
+        if old_payload != None and new_payload.added > old_payload.added:
+            perf_data['latest_payload'] = new_payload.pk
+            
+            self.performance_metadata = json.dumps(perf_data, indent=2)
+            self.save()
+
+    def most_recent_payload(self):
+        perf_data = json.loads(self.performance_metadata)
+        
+        if 'latest_payload' in perf_data:
+            return PurpleRobotPayload.objects.filter(pk=perf_data['latest_payload']).first()
+        else:
+            perf_data['latest_payload'] = -1
+
+        payload = PurpleRobotPayload.objects.filter(user_id=self.hash_key).order_by('-added').first()
+        
+        if payload != None:
+            perf_data['latest_payload'] = payload.pk
+        else:
+            perf_data['latest_payload'] = -1
+                    
+        self.performance_metadata = json.dumps(perf_data, indent=2)
+        self.save()
+        
+        return payload
+
+        
     def most_recent_reading(self, probe_name):
         perf_data = json.loads(self.performance_metadata)
         
         if 'latest_readings' in perf_data:
             if probe_name in perf_data['latest_readings']:
-                reading = PurpleRobotReading.objects.filter(pk=perf_data['latest_readings'][probe_name]).first()
-                
-                if reading != None:
-                    return reading
+                return PurpleRobotReading.objects.filter(pk=perf_data['latest_readings'][probe_name]).first()
         else:
             perf_data['latest_readings'] = {}
 
@@ -100,7 +188,9 @@ class PurpleRobotDevice(models.Model):
         
         if reading != None:
             perf_data['latest_readings'][probe_name] = reading.pk
-            
+        else:
+            perf_data['latest_readings'][probe_name] = -1
+                    
         self.performance_metadata = json.dumps(perf_data, indent=2)
         self.save()
         
@@ -121,20 +211,13 @@ class PurpleRobotDevice(models.Model):
         
     def last_upload(self):
         self.init_hash()
-
-        last_upload = cache.get(self.hash_key + '__last_upload')
         
-        if last_upload != None:
-            return last_upload
-                        
-        payload = PurpleRobotPayload.objects.filter(user_id=self.hash_key).order_by('-added').first()
+        payload = self.most_recent_payload()
         
         if payload != None:
-            last_upload = payload.added
+            return payload.added
             
-            cache.set(self.hash_key + '__last_upload', last_upload)
-            
-        return last_upload
+        return None
         
     def last_upload_status(self):
         upload = self.last_upload()
@@ -357,21 +440,35 @@ class PurpleRobotDevice(models.Model):
             cache.set(self.hash_key + '__last_robot_location', location)
 
         return location
-        
-    def last_readings(self, omit_readings=False):
-        self.init_hash()
+    
+    def probes(self):
+        perf_data = json.loads(self.performance_metadata)
 
-        readings = cache.get(self.hash_key + '__last_readings')
+        if ('probes' in perf_data):
+            return perf_data['probes']
 
-        if readings != None:
-            return readings
-            
-        readings = []
-        
+        perf_data['probes'] = []
+
         probe_readings = PurpleRobotReading.objects.values('probe').distinct()
         
         for probe_reading in probe_readings:
             item = self.most_recent_reading(probe_reading['probe'])
+            
+            perf_data['probes'].append(item)
+        
+        self.performance_metadata = json.dumps(perf_data, indent=2)
+        self.save()
+        
+        return perf_data['probes']
+        
+        
+    def last_readings(self, omit_readings=False):
+        self.init_hash()
+
+        readings = []
+        
+        for probe_name in self.probes():
+            item = self.most_recent_reading(probe_name)
             
             if item != None:
                 reading = {}
@@ -381,10 +478,11 @@ class PurpleRobotDevice(models.Model):
                 reading['last_update'] = item.logged
             
                 if omit_readings == False:
-                    cursor = connection.cursor()
-                    cursor.execute("SELECT COUNT(logged) FROM \"purple_robot_app_purplerobotreading\" WHERE (\"purple_robot_app_purplerobotreading\".\"probe\" = '%s' AND \"purple_robot_app_purplerobotreading\".\"user_id\" = '%s' );" % (item.probe, self.hash_key))
-                    row = cursor.fetchone()
-                    reading['num_readings'] = int(row[0])
+#                    cursor = connection.cursor()
+#                    cursor.execute("SELECT COUNT(logged) FROM \"purple_robot_app_purplerobotreading\" WHERE (\"purple_robot_app_purplerobotreading\".\"probe\" = '%s' AND \"purple_robot_app_purplerobotreading\".\"user_id\" = '%s' );" % (item.probe, self.hash_key))
+#                    row = cursor.fetchone()
+                    reading['num_readings'] = self.fetch_reading_count(probe_name)
+#                    reading['num_readings'] = 0
 #                    reading['num_readings'] = PurpleRobotReading.objects.filter(user_id=self.hash_key, probe=item.probe).count()
                     reading['status'] = 'TODO'
 
@@ -396,8 +494,6 @@ class PurpleRobotDevice(models.Model):
                 readings.append(reading)
         
         readings = sorted(readings, key=lambda k: k['name']) 
-        
-        cache.set(self.hash_key + '__last_readings', readings)
         
         return readings
         
@@ -518,20 +614,21 @@ class PurpleRobotPayload(models.Model):
     
         device = PurpleRobotDevice.objects.filter(hash_key=self.user_id).first()
 
+        if device != None:
+            device.set_most_recent_payload(self)
+
         for item in items:
             try:
                 reading = PurpleRobotReading(probe=item['PROBE'], user_id=self.user_id)
                 reading.payload = json.dumps(item, indent=2)
                 reading.logged = datetime.datetime.utcfromtimestamp(item['TIMESTAMP']).replace(tzinfo=pytz.utc)
                 reading.guid = item['GUID']
-            
+                reading.size = len(reading.payload)
+
                 reading.save()
             
                 if device != None:
-                    device_reading = device.most_recent_reading(reading.probe)
-                
-                    if device_reading.logged < reading.logged:
-                        device.clear_most_recent_reading(reading.probe, reading.pk)
+                    device.set_most_recent_reading(reading)
             except KeyError:
                 if tags is None or len(tags) == 0:
                     tags = 'ingest_error'
@@ -595,6 +692,13 @@ class PurpleRobotReading(models.Model):
     
     attachment = models.FileField(upload_to='reading_attachments', null=True, blank=True)
     
+    class Meta:
+        index_together = [
+            ['probe', 'user_id'],
+            ['logged', 'user_id'],
+            ['probe', 'logged', 'user_id'],
+        ]
+
     def probe_name(self):
         return self.probe.replace('edu.northwestern.cbits.purple_robot_manager.probes.', '')
         

@@ -1,4 +1,5 @@
 import os
+import datetime
 
 from django.core.management import call_command, find_management_module, find_commands, load_command_class
 from django.core.management.base import BaseCommand
@@ -7,6 +8,12 @@ from django.db.models import Q
 from django.utils import timezone
 
 from purple_robot_app.models import PurpleRobotAlert
+
+def touch(fname, mode=0o666, dir_fd=None, **kwargs):
+    flags = os.O_CREAT | os.O_APPEND
+    
+    with os.fdopen(os.open(fname, flags, mode)) as f:
+        os.utime(fname, None)
 
 def fetch_query(message=None, severity=None, tags=None, user_id=None, probe=None, dismissed=False):
     q = Q(dismissed=None)
@@ -66,15 +73,24 @@ def cancel_alert(message=None, severity=None, tags=None, user_id=None, probe=Non
 class Command(BaseCommand):
     def handle(self, *args, **options):
         if os.access('/tmp/check_status.lock', os.R_OK):
-            return
+            t = os.path.getmtime('/tmp/check_status.lock')
+            created = datetime.datetime.fromtimestamp(t)
+            
+            if (datetime.datetime.now() - created).total_seconds() > 60 * 60:
+                print('check_status: Stale lock - removing...')
+                os.remove('/tmp/check_status.lock')
+            else:
+                return
     
-        open('/tmp/check_status.lock', 'wa').close() 
+        touch('/tmp/check_status.lock')
+
+        for app in settings.INSTALLED_APPS:
+            if app.startswith('django') == False: 
+                command_names = find_commands(find_management_module(app))
         
-        command_names = find_commands(find_management_module('purple_robot_app'))
-        
-        for command_name in command_names:
-            if command_name.startswith('pr_status_check_'):
-                # print('Running: ' + command_name)
-                call_command(command_name)
+                for command_name in command_names:
+                    if command_name.startswith('pr_status_check_'):
+#                        print('Running: ' + command_name)
+                        call_command(command_name)
 
         os.remove('/tmp/check_status.lock')

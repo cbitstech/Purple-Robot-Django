@@ -64,6 +64,7 @@ def insert(connection_str, user_id, reading):
     longitude = None
     timestamp = None
     provider = None
+    accuracy = None
     
     if 'LATITUDE' in reading:
         latitude = reading['LATITUDE']
@@ -76,6 +77,9 @@ def insert(connection_str, user_id, reading):
     
     if 'PROVIDER' in reading:
         provider = reading['PROVIDER']
+
+    if 'ACCURACY' in reading:
+        accuracy = reading['ACCURACY']
     
     if timestamp != None:
         values = [ user_id, reading['GUID'], timestamp, datetime.datetime.fromtimestamp(timestamp, tz=pytz.utc), latitude, longitude ]
@@ -87,7 +91,7 @@ def insert(connection_str, user_id, reading):
     else:
         values.append(None)
     
-    values.append(reading['ACCURACY'])
+    values.append(accuracy)
     values.append(provider)
     
     cursor.execute(reading_cmd, values)
