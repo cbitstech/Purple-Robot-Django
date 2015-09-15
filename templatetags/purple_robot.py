@@ -8,9 +8,26 @@ from django.template.defaultfilters import stringfilter
 from django.template.loader import render_to_string
 from django.utils import timezone
 
-from purple_robot_app.models import PurpleRobotDeviceGroup, PurpleRobotAlert
+from purple_robot_app.models import PurpleRobotDeviceGroup, PurpleRobotAlert, PurpleRobotDevice
 
 register = template.Library()
+
+@register.tag(name="pr_device_custom_sidebar")
+def pr_device_custom_sidebar(parser, token):
+    return CustomSidebarNode()
+
+class CustomSidebarNode(template.Node):
+    def __init__(self):
+        pass
+
+    def render(self, context):
+        try:
+            return settings.PURPLE_ROBOT_CUSTOM_SIDEBAR(context)
+        except AttributeError:
+            pass
+        
+        return render_to_string('tag_pr_device_custom_sidebar_unknown.html')
+
 
 @register.tag(name="pr_home_custom_console")
 def tag_pr_home_custom_console(parser, token):
@@ -251,3 +268,61 @@ class DeviceAlertsNode(template.Node):
 #        return render_to_string('tag_pr_date_ago.html', context)
         
         
+
+
+@register.tag(name="pr_data_size")
+def tag_pr_data_size(parser, token):
+    try:
+        tag_name, data_size = token.split_contents()
+    except ValueError:
+        raise template.TemplateSyntaxError("%r tag requires a single argument" % token.contents.split()[0])
+
+    return DataSizeNode(data_size)
+
+class DataSizeNode(template.Node):
+    def __init__(self, data_size):
+        self.data_size = template.Variable(data_size)
+
+    def render(self, context):
+        data_size = float(self.data_size.resolve(context))
+        
+        if data_size < 0:
+            return 'Unknown / None'
+            
+        if data_size > (1024 * 1024 * 1024):
+            return "{:10.1f}".format(data_size / (1024 * 1024 * 1024)) + " GB"
+        elif data_size > (1024 * 1024):
+            return "{:10.1f}".format(data_size / (1024 * 1024)) + " MB"
+        elif data_size > 1024:
+            return "{:10.1f}".format(data_size / 1024) + " KB"
+
+        return (str(data_size) + " B")
+
+@register.filter(name='to_percent')
+def to_percent(value):
+    return (value * 100)
+
+@register.tag(name="pr_total_data_size")
+def tag_pr_total_database_size(parser, token):
+    return TotalDataSizeNode()
+
+class TotalDataSizeNode(template.Node):
+    def render(self, context):
+        data_size = 0
+        
+        for device in PurpleRobotDevice.objects.all():
+            data_size += device.total_readings_size()
+            
+        data_size *= 2
+        
+        if data_size <= 0:
+            return 'Unknown / None'
+            
+        if data_size > (1024 * 1024 * 1024):
+            return "{:10.1f}".format(data_size / (1024 * 1024 * 1024)) + " GB"
+        elif data_size > (1024 * 1024):
+            return "{:10.1f}".format(data_size / (1024 * 1024)) + " MB"
+        elif data_size > 1024:
+            return "{:10.1f}".format(data_size / 1024) + " KB"
+
+        return (str(data_size) + " B")

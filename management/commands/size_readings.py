@@ -7,8 +7,10 @@ import sys
 import time
 
 from django.core.management.base import BaseCommand
+from django.db.models import Sum
+from django.utils import timezone
 
-from purple_robot_app.models import PurpleRobotReading
+from purple_robot_app.models import PurpleRobotReading, PurpleRobotDevice
 
 def touch(fname, mode=0o666, dir_fd=None, **kwargs):
     flags = os.O_CREAT | os.O_APPEND
@@ -34,6 +36,24 @@ class Command(BaseCommand):
 
         for reading in readings:
             reading.size = len(reading.payload)
+            
+            if reading.attachment != None:
+                try:
+                    reading.size += reading.attachment.size
+                except ValueError:
+                    pass # No attachment...
+            
             reading.save()
+            
+        for device in PurpleRobotDevice.objects.all():
+            total_size = PurpleRobotReading.objects.filter(user_id=device.hash_key).aggregate(Sum('size'))
+            
+            metadata = json.loads(device.performance_metadata)
+            
+            metadata['total_readings_size'] = total_size['size__sum']
+            
+            device.performance_metadata = json.dumps(metadata, indent=2)
+            
+            device.save()
 
         os.remove('/tmp/size_readings.lock')

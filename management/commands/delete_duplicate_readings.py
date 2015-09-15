@@ -14,6 +14,9 @@ def touch(fname, mode=0o666, dir_fd=None, **kwargs):
 
 class Command(BaseCommand):
     def handle(self, *args, **options):
+        if True:
+            return # Disable this command!
+            
         if os.access('/tmp/delete_duplicate_readings.lock', os.R_OK):
             t = os.path.getmtime('/tmp/delete_duplicate_readings.lock')
             created = datetime.datetime.fromtimestamp(t)

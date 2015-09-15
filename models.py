@@ -22,7 +22,7 @@ def my_slugify(str_obj):
 
 class PurpleRobotConfiguration(models.Model):
     name = models.CharField(max_length=1024)
-    slug = models.CharField(max_length=1024, unique=True, db_index=True)
+    slug = models.SlugField(max_length=1024, unique=True, db_index=True)
     contents = models.TextField(max_length=1048576)
     added = models.DateTimeField()
 
@@ -130,7 +130,7 @@ class PurpleRobotDevice(models.Model):
             perf_data['probes'].append(new_reading.probe)
             updated = True
         
-        if old_reading != None and new_reading.logged > old_reading.logged:
+        if old_reading == None or new_reading.logged > old_reading.logged:
             perf_data['latest_readings'][new_reading.probe] = new_reading.pk
             updated = True
             
@@ -382,18 +382,13 @@ class PurpleRobotDevice(models.Model):
 
     def last_robot_health(self):
         self.init_hash()
-        
-        data = cache.get(self.hash_key + '__last_robot_health')
-        
-        if data != None:
-            return data
     
         reading = self.most_recent_reading('edu.northwestern.cbits.purple_robot_manager.probes.builtin.RobotHealthProbe')
         
+        data = None
+        
         if reading != None:
             data = json.loads(reading.payload)
-            
-            cache.set(self.hash_key + '__last_robot_health', data)
             
         return data
         
@@ -440,6 +435,18 @@ class PurpleRobotDevice(models.Model):
             cache.set(self.hash_key + '__last_robot_location', location)
 
         return location
+
+    def installed_apps(self):
+        self.init_hash()
+
+        reading = self.most_recent_reading('edu.northwestern.cbits.purple_robot_manager.probes.builtin.SoftwareInformationProbe')
+            
+        if reading != None:
+            data = json.loads(reading.payload)
+            
+            return data['INSTALLED_APPS']
+            
+        return []
     
     def probes(self):
         perf_data = json.loads(self.performance_metadata)
@@ -454,8 +461,9 @@ class PurpleRobotDevice(models.Model):
         for probe_reading in probe_readings:
             item = self.most_recent_reading(probe_reading['probe'])
             
-            perf_data['probes'].append(item)
-        
+            if item != None:
+                perf_data['probes'].append(item.probe)
+            
         self.performance_metadata = json.dumps(perf_data, indent=2)
         self.save()
         
@@ -496,6 +504,15 @@ class PurpleRobotDevice(models.Model):
         readings = sorted(readings, key=lambda k: k['name']) 
         
         return readings
+        
+    def total_readings_size(self):
+        metadata = json.loads(self.performance_metadata)
+        
+        if 'total_readings_size' in metadata:
+            return metadata['total_readings_size']
+            
+        return -1
+
         
     def data_size_history(self, unit='day', count=None):
         now = timezone.localtime(timezone.now())
@@ -596,6 +613,25 @@ class PurpleRobotDevice(models.Model):
         readings = PurpleRobotReading.objects.filter(user_id=self.user_hash, probe=probe_name).order_by('-logged')[:500]
         
         return formatter.visualize(probe_name, readings)
+        
+    def sanity_messages(self):
+        data = self.last_robot_health()
+        
+        if data == None:
+            return None
+            
+        messages = []
+        
+        if 'CHECK_ERRORS' in data:
+            for error in data['CHECK_ERRORS']:
+                messages.append((error, "error",))
+        
+        if 'CHECK_WARNINGS' in data:
+            for warning in data['CHECK_WARNINGS']:
+                messages.append((warning, "warning",))
+        
+        return messages
+        
 
 class PurpleRobotPayload(models.Model):
     added = models.DateTimeField(auto_now_add=True)
@@ -688,7 +724,7 @@ class PurpleRobotReading(models.Model):
     payload = models.TextField(max_length=8388608)
     logged = models.DateTimeField(db_index=True)
     guid = models.CharField(max_length=1024, db_index=True, null=True, blank=True)
-    size = models.IntegerField(default=0)
+    size = models.IntegerField(default=0, db_index=True)
     
     attachment = models.FileField(upload_to='reading_attachments', null=True, blank=True)
     

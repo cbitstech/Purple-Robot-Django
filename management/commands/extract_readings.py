@@ -35,7 +35,7 @@ class Command(BaseCommand):
             for payload in payloads:
                 payload.ingest_readings()
                     
-            payloads = PurpleRobotPayload.objects.exclude(process_tags__contains=tag).order_by('-added')[:250]
+            payloads = PurpleRobotPayload.objects.exclude(process_tags__contains=tag).exclude(process_tags__contains='ingest_error').order_by('-added')[:250]
             
         readings = PurpleRobotReading.objects.filter(guid=None)[:250]
         

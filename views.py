@@ -3,6 +3,7 @@ import hashlib
 import datetime
 
 from django.contrib.admin.views.decorators import staff_member_required
+from django.core.context_processors import csrf
 from django.core.urlresolvers import reverse
 from django.http import HttpResponse, UnreadablePostError
 from django.shortcuts import render_to_response, get_object_or_404, redirect
@@ -229,6 +230,8 @@ def pr_device(request, device_id):
     c = RequestContext(request)
     
     c['device'] = PurpleRobotDevice.objects.get(device_id=device_id)
+
+    c.update(csrf(request))
 
     return render_to_response('purple_robot_device.html', c)
 

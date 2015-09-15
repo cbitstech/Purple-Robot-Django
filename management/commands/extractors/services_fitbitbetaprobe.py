@@ -191,95 +191,101 @@ def insert(connection_str, user_id, reading):
         
         reading_cursor = conn.cursor()
         
-        for i in range(0, len(reading['DISTANCE'])):
-            value = reading['DISTANCE'][i]
-            ts = reading['DISTANCE_TIMESTAMPS'][i]
+        if 'DISTANCE' in reading:
+            for i in range(0, len(reading['DISTANCE'])):
+                value = reading['DISTANCE'][i]
+                ts = reading['DISTANCE_TIMESTAMPS'][i]
 
-            reading_cmd = 'INSERT INTO services_fitbitbetaprobe_distance(user_id, ' + \
-                                                                     'reading_id, ' + \
-                                                                     'utc_logged, ' + \
-                                                                     'sensor_timestamp, ' + \
-                                                                     'sensor_timestamp_utc, ' + \
-                                                                     'distance) VALUES (%s, %s, %s, %s, %s, %s);'
+                reading_cmd = 'INSERT INTO services_fitbitbetaprobe_distance(user_id, ' + \
+                                                                         'reading_id, ' + \
+                                                                         'utc_logged, ' + \
+                                                                         'sensor_timestamp, ' + \
+                                                                         'sensor_timestamp_utc, ' + \
+                                                                         'distance) VALUES (%s, %s, %s, %s, %s, %s);'
                                                                      
-            values = [ user_id, reading_id, datetime.datetime.fromtimestamp(reading['TIMESTAMP'], tz=pytz.utc), ts, datetime.datetime.fromtimestamp(ts / 1000, tz=pytz.utc), value ]
+                values = [ user_id, reading_id, datetime.datetime.fromtimestamp(reading['TIMESTAMP'], tz=pytz.utc), ts, datetime.datetime.fromtimestamp(ts / 1000, tz=pytz.utc), value ]
         
-            reading_cursor.execute(reading_cmd, values)
+                reading_cursor.execute(reading_cmd, values)
 
-        for i in range(0, len(reading['CALORIES'])):
-            value = reading['CALORIES'][i]
-            ts = reading['CALORIES_TIMESTAMPS'][i]
+        if 'CALORIES' in reading:
+			for i in range(0, len(reading['CALORIES'])):
+				value = reading['CALORIES'][i]
+				ts = reading['CALORIES_TIMESTAMPS'][i]
 
-            reading_cmd = 'INSERT INTO services_fitbitbetaprobe_calories(user_id, ' + \
-                                                                     'reading_id, ' + \
-                                                                     'utc_logged, ' + \
-                                                                     'sensor_timestamp, ' + \
-                                                                     'sensor_timestamp_utc, ' + \
-                                                                     'calories) VALUES (%s, %s, %s, %s, %s, %s);'
+				reading_cmd = 'INSERT INTO services_fitbitbetaprobe_calories(user_id, ' + \
+																		 'reading_id, ' + \
+																		 'utc_logged, ' + \
+																		 'sensor_timestamp, ' + \
+																		 'sensor_timestamp_utc, ' + \
+																		 'calories) VALUES (%s, %s, %s, %s, %s, %s);'
+																	 
+				values = [ user_id, reading_id, datetime.datetime.fromtimestamp(reading['TIMESTAMP'], tz=pytz.utc), ts, datetime.datetime.fromtimestamp(ts / 1000, tz=pytz.utc), value ]
+		
+				reading_cursor.execute(reading_cmd, values)
+            
+        if 'STEPS' in reading:
+            for i in range(0, len(reading['STEPS'])):
+                value = reading['STEPS'][i]
+                ts = reading['STEP_TIMESTAMPS'][i]
+
+                reading_cmd = 'INSERT INTO services_fitbitbetaprobe_steps(user_id, ' + \
+                                                                         'reading_id, ' + \
+                                                                         'utc_logged, ' + \
+                                                                         'sensor_timestamp, ' + \
+                                                                         'sensor_timestamp_utc, ' + \
+                                                                         'steps) VALUES (%s, %s, %s, %s, %s, %s);'
                                                                      
-            values = [ user_id, reading_id, datetime.datetime.fromtimestamp(reading['TIMESTAMP'], tz=pytz.utc), ts, datetime.datetime.fromtimestamp(ts / 1000, tz=pytz.utc), value ]
+                values = [ user_id, reading_id, datetime.datetime.fromtimestamp(reading['TIMESTAMP'], tz=pytz.utc), ts, datetime.datetime.fromtimestamp(ts / 1000, tz=pytz.utc), value ]
         
-            reading_cursor.execute(reading_cmd, values)
+                reading_cursor.execute(reading_cmd, values)
+                
+        if 'FLOORS' in reading:
+            for i in range(0, len(reading['FLOORS'])):
+                value = reading['FLOORS'][i]
+                ts = reading['FLOORS_TIMESTAMPS'][i]
 
-        for i in range(0, len(reading['STEPS'])):
-            value = reading['STEPS'][i]
-            ts = reading['STEP_TIMESTAMPS'][i]
-
-            reading_cmd = 'INSERT INTO services_fitbitbetaprobe_steps(user_id, ' + \
-                                                                     'reading_id, ' + \
-                                                                     'utc_logged, ' + \
-                                                                     'sensor_timestamp, ' + \
-                                                                     'sensor_timestamp_utc, ' + \
-                                                                     'steps) VALUES (%s, %s, %s, %s, %s, %s);'
+                reading_cmd = 'INSERT INTO services_fitbitbetaprobe_floors(user_id, ' + \
+                                                                         'reading_id, ' + \
+                                                                         'utc_logged, ' + \
+                                                                         'sensor_timestamp, ' + \
+                                                                         'sensor_timestamp_utc, ' + \
+                                                                         'floors) VALUES (%s, %s, %s, %s, %s, %s);'
                                                                      
-            values = [ user_id, reading_id, datetime.datetime.fromtimestamp(reading['TIMESTAMP'], tz=pytz.utc), ts, datetime.datetime.fromtimestamp(ts / 1000, tz=pytz.utc), value ]
+                values = [ user_id, reading_id, datetime.datetime.fromtimestamp(reading['TIMESTAMP'], tz=pytz.utc), ts, datetime.datetime.fromtimestamp(ts / 1000, tz=pytz.utc), value ]
         
-            reading_cursor.execute(reading_cmd, values)
+                reading_cursor.execute(reading_cmd, values)
 
-        for i in range(0, len(reading['FLOORS'])):
-            value = reading['FLOORS'][i]
-            ts = reading['FLOORS_TIMESTAMPS'][i]
+        if 'HEART' in reading:
+			for i in range(0, len(reading['HEART'])):
+				value = reading['HEART'][i]
+				ts = reading['HEART_TIMESTAMPS'][i]
 
-            reading_cmd = 'INSERT INTO services_fitbitbetaprobe_floors(user_id, ' + \
-                                                                     'reading_id, ' + \
-                                                                     'utc_logged, ' + \
-                                                                     'sensor_timestamp, ' + \
-                                                                     'sensor_timestamp_utc, ' + \
-                                                                     'floors) VALUES (%s, %s, %s, %s, %s, %s);'
-                                                                     
-            values = [ user_id, reading_id, datetime.datetime.fromtimestamp(reading['TIMESTAMP'], tz=pytz.utc), ts, datetime.datetime.fromtimestamp(ts / 1000, tz=pytz.utc), value ]
+				reading_cmd = 'INSERT INTO services_fitbitbetaprobe_heart(user_id, ' + \
+																		 'reading_id, ' + \
+																		 'utc_logged, ' + \
+																		 'sensor_timestamp, ' + \
+																		 'sensor_timestamp_utc, ' + \
+																		 'avg_heartrate) VALUES (%s, %s, %s, %s, %s, %s);'
+																	 
+				values = [ user_id, reading_id, datetime.datetime.fromtimestamp(reading['TIMESTAMP'], tz=pytz.utc), ts, datetime.datetime.fromtimestamp(ts / 1000, tz=pytz.utc), value ]
+		
+				reading_cursor.execute(reading_cmd, values)
         
-            reading_cursor.execute(reading_cmd, values)
+        if 'ELEVATION' in reading:
+			for i in range(0, len(reading['ELEVATION'])):
+				value = reading['ELEVATION'][i]
+				ts = reading['ELEVATION_TIMESTAMPS'][i]
 
-        for i in range(0, len(reading['HEART'])):
-            value = reading['HEART'][i]
-            ts = reading['HEART_TIMESTAMPS'][i]
-
-            reading_cmd = 'INSERT INTO services_fitbitbetaprobe_heart(user_id, ' + \
-                                                                     'reading_id, ' + \
-                                                                     'utc_logged, ' + \
-                                                                     'sensor_timestamp, ' + \
-                                                                     'sensor_timestamp_utc, ' + \
-                                                                     'avg_heartrate) VALUES (%s, %s, %s, %s, %s, %s);'
-                                                                     
-            values = [ user_id, reading_id, datetime.datetime.fromtimestamp(reading['TIMESTAMP'], tz=pytz.utc), ts, datetime.datetime.fromtimestamp(ts / 1000, tz=pytz.utc), value ]
-        
-            reading_cursor.execute(reading_cmd, values)
-
-        for i in range(0, len(reading['ELEVATION'])):
-            value = reading['ELEVATION'][i]
-            ts = reading['ELEVATION_TIMESTAMPS'][i]
-
-            reading_cmd = 'INSERT INTO services_fitbitbetaprobe_elevation(user_id, ' + \
-                                                                     'reading_id, ' + \
-                                                                     'utc_logged, ' + \
-                                                                     'sensor_timestamp, ' + \
-                                                                     'sensor_timestamp_utc, ' + \
-                                                                     'elevation) VALUES (%s, %s, %s, %s, %s, %s);'
-                                                                     
-            values = [ user_id, reading_id, datetime.datetime.fromtimestamp(reading['TIMESTAMP'], tz=pytz.utc), ts, datetime.datetime.fromtimestamp(ts / 1000, tz=pytz.utc), value ]
-        
-            reading_cursor.execute(reading_cmd, values)
+				reading_cmd = 'INSERT INTO services_fitbitbetaprobe_elevation(user_id, ' + \
+																		 'reading_id, ' + \
+																		 'utc_logged, ' + \
+																		 'sensor_timestamp, ' + \
+																		 'sensor_timestamp_utc, ' + \
+																		 'elevation) VALUES (%s, %s, %s, %s, %s, %s);'
+																	 
+				values = [ user_id, reading_id, datetime.datetime.fromtimestamp(reading['TIMESTAMP'], tz=pytz.utc), ts, datetime.datetime.fromtimestamp(ts / 1000, tz=pytz.utc), value ]
+		
+				reading_cursor.execute(reading_cmd, values)
             
         reading_cursor.close()
 

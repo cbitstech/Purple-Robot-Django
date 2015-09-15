@@ -8,6 +8,28 @@
 		<h1>{{ device.name }}</h1>
 	</div>
 	<div class="col-md-9">
+		{% with sanity_messages=device.sanity_messages %}
+			{% if sanity_messages == None %}
+				<div class="alert alert-danger" role="alert">
+					<span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
+					No data from the <strong>Robot Health Probe</strong> from the device.
+				</div>
+			{% else %}
+				{% for message in sanity_messages %}
+					{% if message.1 == 'error' %}
+						<div class="alert alert-danger" role="alert">
+							<span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
+							{{ message.0 }}
+						</div>
+					{% else %}
+						<div class="alert alert-warning" role="alert">
+							<span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
+							{{ message.0 }}
+						</div>
+					{% endif %}
+				{% endfor %}
+			{% endif %}
+		{% endwith %}
 		{% for alert in device.alerts %}
 			{% if alert.severity == 2 %}
 				<div class="alert alert-danger" role="alert">
@@ -65,7 +87,7 @@
 			</tbody>
 		</table>
 
-		<h3>Models (TODO)</h3>
+		<!-- <h3>Models (TODO)</h3>
 		
 		<table class="table">
 			<thead>
@@ -84,7 +106,7 @@
 					<td>42d</td>
 				</tr>
 			</tbody>
-		</table>
+		</table> -->
 
 		<h3>Triggers</h3>
 		
@@ -131,7 +153,9 @@
 		</table>
 	</div>
 	<div class="col-md-3">
-		<h4 style="margin-top: 0;">Details</h4>
+		{% pr_device_custom_sidebar %}
+
+		<h4>Details</h4>
 		
 		<div>
 			<span>
@@ -231,13 +255,20 @@
 			{% endwith %}
 		</div>
 
+		<div>
+			<span>
+				<small><strong>Total Data Upload Size</strong></small>
+			</span>
+			<span class="pull-right"><small>{% pr_data_size device.total_readings_size %}</small></span>
+		</div>
 
 		<h4 style="margin-top: 2em;">Basic Settings</h4>
 		[ Common settings ]<br />
 
 		<h4 style="margin-top: 2em;">Installed Apps</h4>
-		installed apps <br />
-
+		{% for app in device.installed_apps %}
+			<span style="font-size: smaller;">{{ app.APP_NAME }}</span><br />
+		{% endfor %}
 	</div>
 	<script src="{% static 'vendor/rickshaw.min.js' %}"></script>
 	<script src="{% static 'vendor/moment-with-locales.min.js' %}"></script>

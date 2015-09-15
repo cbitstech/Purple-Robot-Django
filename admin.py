@@ -57,9 +57,20 @@ class PurpleRobotDeviceGroupAdmin(admin.ModelAdmin):
     
 admin.site.register(PurpleRobotDeviceGroup, PurpleRobotDeviceGroupAdmin)
 
+
+def clear_performance_metadata(modeladmin, request, queryset):
+    for device in queryset:
+        device.performance_metadata = '{}'
+        device.save()
+
+clear_performance_metadata.description = 'Reset cached metadata'
+
+
 class PurpleRobotDeviceAdmin(admin.ModelAdmin):
     list_display = ('device_id', 'name', 'configuration', 'config_last_fetched', 'config_last_user_agent', 'hash_key')
     list_filter = ['device_group', 'configuration']
+    
+    actions = [ clear_performance_metadata ]
     
 admin.site.register(PurpleRobotDevice, PurpleRobotDeviceAdmin)
 
