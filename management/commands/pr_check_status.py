@@ -85,12 +85,15 @@ class Command(BaseCommand):
         touch('/tmp/check_status.lock')
 
         for app in settings.INSTALLED_APPS:
-            if app.startswith('django') == False: 
-                command_names = find_commands(find_management_module(app))
+            if app.startswith('django') == False:
+                try: 
+                    command_names = find_commands(find_management_module(app))
         
-                for command_name in command_names:
-                    if command_name.startswith('pr_status_check_'):
-#                        print('Running: ' + command_name)
-                        call_command(command_name)
+                    for command_name in command_names:
+                        if command_name.startswith('pr_status_check_'):
+    #                        print('Running: ' + command_name)
+                            call_command(command_name)
+                except ImportError:
+                    pass
 
         os.remove('/tmp/check_status.lock')
