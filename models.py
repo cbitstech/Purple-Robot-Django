@@ -444,7 +444,7 @@ class PurpleRobotDevice(models.Model):
         if reading != None:
             data = json.loads(reading.payload)
             
-            return data['INSTALLED_APPS']
+            return sorted(data['INSTALLED_APPS'], key=lambda item: item['APP_NAME'].lower())
             
         return []
     
@@ -632,6 +632,13 @@ class PurpleRobotDevice(models.Model):
         
         return messages
         
+class PurpleRobotDeviceNote(models.Model):
+    device = models.ForeignKey(PurpleRobotDevice, related_name='notes')
+    note = models.TextField(max_length=1024)
+    added = models.DateTimeField()
+
+    def __unicode__(self):
+        return str(self.device) + ': ' + str(self.added)
 
 class PurpleRobotPayload(models.Model):
     added = models.DateTimeField(auto_now_add=True)

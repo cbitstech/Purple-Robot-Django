@@ -8,13 +8,15 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponse, UnreadablePostError
 from django.shortcuts import render_to_response, get_object_or_404, redirect
 from django.template import RequestContext
+from django.utils import timezone
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_exempt
 
 from forms import ExportJobForm
 from models import PurpleRobotPayload, PurpleRobotTest, PurpleRobotEvent, \
                    PurpleRobotReport, PurpleRobotExportJob, PurpleRobotReading, \
-                   PurpleRobotConfiguration, PurpleRobotDevice, PurpleRobotDeviceGroup
+                   PurpleRobotConfiguration, PurpleRobotDevice, PurpleRobotDeviceGroup, \
+                   PurpleRobotDeviceNote
 
 @never_cache
 def config(request):
@@ -485,3 +487,24 @@ def pr_configuration(request, config_id):
     c['config'] = get_object_or_404(PurpleRobotConfiguration, slug=config_id)
 
     return render_to_response('purple_robot_configuration.html', c)
+    
+@staff_member_required
+@never_cache
+def pr_add_note(request):
+    response = { 'result': 'error', 'message': 'No note provided or other error. See server logs.' }
+    
+    if request.method == 'POST':
+        device_id = request.POST['device_id']
+        note_contents = request.POST['note_contents']
+        
+        device = PurpleRobotDevice.objects.filter(device_id=device_id).first()
+        
+        if device != None:
+            PurpleRobotDeviceNote(device=device, added=timezone.now(), note=note_contents).save()
+            response['message'] = 'Note added. Reloading page...'
+            response['result'] = 'success'
+        else:
+            response['message'] = 'Note not added. Device does not exist.'
+
+    return HttpResponse(json.dumps(response, indent=2), content_type='application/json')
+    

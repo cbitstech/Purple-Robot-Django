@@ -4,7 +4,8 @@ from purple_robot_app.models import PurpleRobotConfiguration, PurpleRobotPayload
                                     PurpleRobotEvent, PurpleRobotReading, \
                                     PurpleRobotReport, PurpleRobotTest, \
                                     PurpleRobotExportJob, PurpleRobotDeviceGroup, \
-                                    PurpleRobotDevice, PurpleRobotAlert
+                                    PurpleRobotDevice, PurpleRobotAlert, \
+                                    PurpleRobotDeviceNote
 
 class PurpleRobotConfigurationAdmin(admin.ModelAdmin):
     list_display = ('name', 'slug', 'added')
@@ -74,9 +75,9 @@ class PurpleRobotDeviceAdmin(admin.ModelAdmin):
     
 admin.site.register(PurpleRobotDevice, PurpleRobotDeviceAdmin)
 
-class PurpleRobotAlertAdmin(admin.ModelAdmin):
-    list_display = ('message', 'severity', 'tags', 'action_url', 'probe', 'user_id', 'generated', 'dismissed', 'manually_dismissed')
-    list_filter = ['severity', 'user_id', 'generated', 'dismissed', 'manually_dismissed']
-    search_fields = ['message', 'tags']
+class PurpleRobotDeviceNoteAdmin(admin.ModelAdmin):
+    list_display = ('device', 'added',)
+    list_filter = ['added']
+    search_fields = ['note']
     
-admin.site.register(PurpleRobotAlert, PurpleRobotAlertAdmin)
+admin.site.register(PurpleRobotDeviceNote, PurpleRobotDeviceNoteAdmin)
