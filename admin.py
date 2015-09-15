@@ -81,3 +81,11 @@ class PurpleRobotDeviceNoteAdmin(admin.ModelAdmin):
     search_fields = ['note']
     
 admin.site.register(PurpleRobotDeviceNote, PurpleRobotDeviceNoteAdmin)
+
+class PurpleRobotAlertAdmin(admin.ModelAdmin):
+    list_display = ('user_id', 'probe', 'tags', 'message', 'severity', 'generated', 'dismissed', 'manually_dismissed',)
+
+    list_filter = ['tags', 'probe', 'severity', 'generated', 'dismissed', 'manually_dismissed']
+    search_fields = ['tags', 'message']
+
+admin.site.register(PurpleRobotAlert, PurpleRobotAlertAdmin)
