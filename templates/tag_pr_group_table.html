@@ -1,4 +1,18 @@
 {% load purple_robot %}
+<script>
+	$(document).ready(function()
+	{
+		$("a.remove_device_{{ device_group.pk }}").click(function(eventObj)
+		{
+			if (confirm("Are you sure you want to remove this device from {{ device_group.name }}?"))
+			{
+				// Do nothing...			
+			}
+			else
+				eventObj.preventDefault();
+		});
+	});
+</script>
 <table class="table">
 	<thead>
 		<tr>
@@ -13,6 +27,9 @@
 			<th class="text-center"><span class="glyphicon glyphicon-hdd" data-toggle="tooltip" data-placement="top" title="Total Upload Size"></span></th>
 			<th class="text-center"><span class="glyphicon glyphicon-exclamation-sign" data-toggle="tooltip" data-placement="top" title="Error &amp; Warnings"></span></th>
 			<th class="text-center"><span class="glyphicon glyphicon-refresh" data-toggle="tooltip" data-placement="top" title="Last Configuration Refresh"></span></th>
+			{% if device_group != None %}
+				<th class="text-center"></th>
+			{% endif %}
 		</tr>
 	</thead>
 	<tbody>
@@ -79,6 +96,11 @@
 						{% endif %}
 					{% endwith %}
 				</td>
+				{% if device_group != None %}
+					<td class="text-center">
+						<a href="{% url 'pr_remove_device' device_group.pk device.pk %}" class="remove_device_{{ device_group.pk }}"><span class="glyphicon glyphicon-remove-sign text-danger" /></a>
+					</td>
+				{% endif %}
 			</tr>
 			{% empty %}
 				<tr>

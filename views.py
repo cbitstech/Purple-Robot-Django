@@ -223,6 +223,7 @@ def pr_home(request):
     c = RequestContext(request)
     
     c['device_groups'] = PurpleRobotDeviceGroup.objects.all()
+    c['unattached_devices'] = PurpleRobotDevice.objects.filter(device_group=None)
 
     return render_to_response('purple_robot_home.html', c)
 
@@ -464,6 +465,19 @@ def pr_add_device(request, group_id):
                 request.session['pr_messages'] = [ 'Unable to create device. A device already exists with identifier "' + device_id + '".' ]
     else:
         request.session['pr_messages'] = [ 'Unable to locate group with identifier "' + group_id + '" and create new device.' ]
+    
+    return redirect(reverse('pr_home'))
+
+@staff_member_required
+@never_cache
+def pr_remove_device(request, group_id, device_id):
+    group = PurpleRobotDeviceGroup.objects.filter(pk=int(group_id)).first()
+    
+    device = group.devices.filter(pk=int(device_id)).first()
+    
+    if device != None:
+        group.devices.remove(device)
+        group.save()
     
     return redirect(reverse('pr_home'))
 

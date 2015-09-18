@@ -77,8 +77,12 @@ class GroupTableNode(template.Node):
     def render(self, context):
         group_id = self.group_id.resolve(context)
         
-        context['device_group'] = PurpleRobotDeviceGroup.objects.get(group_id=group_id)
-        context['device_group_devices'] = list(context['device_group'].devices.all())
+        context['device_group'] = PurpleRobotDeviceGroup.objects.filter(group_id=group_id).first()
+        
+        if context['device_group'] != None:
+            context['device_group_devices'] = list(context['device_group'].devices.all().order_by('name', 'device_id'))
+        else:
+            context['device_group_devices'] = list(PurpleRobotDevice.objects.filter(device_group=None).order_by('name', 'device_id'))
         
         return render_to_string('tag_pr_group_table.html', context)
 

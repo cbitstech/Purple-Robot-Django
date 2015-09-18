@@ -24,6 +24,11 @@
 				</small>
 			</div>
 		{% endfor %}
+		
+		{% if unattached_devices.count > 0 %}
+			<h3>Unaffiliated Devices</h3>
+			{% pr_group_table '' %}
+		{% endif %}
 	</div>
 	<div class="modal fade" id="modal_add_group" tabindex="-1" role="dialog" aria-labelledby="model_add_group" aria-hidden="true">
 		<div class="modal-dialog">

@@ -61,7 +61,7 @@
 			<span>
 				<small><strong>Avg Frequency (Last 24 hrs.)</strong></small>
 			</span>
-			<span class="pull-right"><small>{% pr_frequency test.average_frequency %}</small></span>
+			<span class="pull-right"><small>{% if test.average_frequency != None %}{% pr_frequency test.average_frequency %}{% else %}Unknown{% endif %}</small></span>
 		</div>
 
 		<h4 style="margin-top: 2em;">Probe Settings</h4>
