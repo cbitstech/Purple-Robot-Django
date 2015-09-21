@@ -12,7 +12,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         start = datetime.datetime.now() - datetime.timedelta(days=START_DAYS)
         
-        for device in PurpleRobotDevice.objects.all():
+        for device in PurpleRobotDevice.objects.filter(mute_alerts=False):
             payload = PurpleRobotPayload.objects.filter(user_id=device.hash_key, added__gte=start).order_by('-added').first()
             reading = PurpleRobotReading.objects.filter(user_id=device.hash_key, logged__gte=start).order_by('-logged').first()
             

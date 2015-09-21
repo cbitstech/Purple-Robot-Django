@@ -7,7 +7,7 @@ from django.conf import settings
 from django.db.models import Q
 from django.utils import timezone
 
-from purple_robot_app.models import PurpleRobotAlert
+from purple_robot_app.models import PurpleRobotAlert, PurpleRobotDevice
 
 def touch(fname, mode=0o666, dir_fd=None, **kwargs):
     flags = os.O_CREAT | os.O_APPEND
@@ -93,7 +93,14 @@ class Command(BaseCommand):
                         if command_name.startswith('pr_status_check_'):
     #                        print('Running: ' + command_name)
                             call_command(command_name)
+                    
+                    touch('/tmp/check_status.lock')
                 except ImportError:
                     pass
+                    
+        for device in PurpleRobotDevice.objects.filter(mute_alerts=True):
+            for alert in PurpleRobotAlert.objects.filter(user_id=device.hash_key, dismissed=None):
+                 alert.dismissed = timezone.now()
+                 alert.save()
 
         os.remove('/tmp/check_status.lock')

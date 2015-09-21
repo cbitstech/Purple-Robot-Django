@@ -24,7 +24,7 @@ class Command(BaseCommand):
             t = os.path.getmtime('/tmp/size_readings.lock')
             created = datetime.datetime.fromtimestamp(t)
             
-            if (datetime.datetime.now() - created).total_seconds() > 120:
+            if (datetime.datetime.now() - created).total_seconds() > 4 * 60 * 60:
                 print('size_readings: Stale lock - removing...')
                 os.remove('/tmp/size_readings.lock')
             else:
@@ -45,6 +45,9 @@ class Command(BaseCommand):
             
             reading.save()
             
+            touch('/tmp/size_readings.lock')
+
+            
         for device in PurpleRobotDevice.objects.all():
             total_size = PurpleRobotReading.objects.filter(user_id=device.hash_key).aggregate(Sum('size'))
             
@@ -55,5 +58,7 @@ class Command(BaseCommand):
             device.performance_metadata = json.dumps(metadata, indent=2)
             
             device.save()
+
+            touch('/tmp/size_readings.lock')
 
         os.remove('/tmp/size_readings.lock')

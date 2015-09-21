@@ -19,7 +19,7 @@ class Command(BaseCommand):
             t = os.path.getmtime('/tmp/extract_readings.lock')
             created = datetime.datetime.fromtimestamp(t)
             
-            if (datetime.datetime.now() - created).total_seconds() > 120:
+            if (datetime.datetime.now() - created).total_seconds() > 4 * 60 * 60:
                 print('extract_readings: Stale lock - removing...')
                 os.remove('/tmp/extract_readings.lock')
             else:

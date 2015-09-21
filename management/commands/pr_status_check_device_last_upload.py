@@ -6,7 +6,7 @@ from purple_robot_app.management.commands.pr_check_status import log_alert, canc
 
 class Command(BaseCommand):
     def handle(self, *args, **options):
-        for device in PurpleRobotDevice.objects.all():
+        for device in PurpleRobotDevice.objects.filter(mute_alerts=False):
             payload = PurpleRobotPayload.objects.filter(user_id=device.hash_key).order_by('-added').first()
             
             now = timezone.now()

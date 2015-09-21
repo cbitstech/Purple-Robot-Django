@@ -3,6 +3,7 @@ import datetime
 import importlib
 import hashlib
 import json
+import numpy
 import pytz
 import string
 import time
@@ -65,6 +66,8 @@ class PurpleRobotDevice(models.Model):
     config_last_fetched = models.DateTimeField(null=True, blank=True)
     config_last_user_agent = models.CharField(max_length=1024, null=True, blank=True)
     hash_key = models.CharField(max_length=128, null=True, blank=True)
+    
+    mute_alerts = models.BooleanField(default=False)
     
     performance_metadata = models.TextField(max_length=1048576, default='{}')
 
@@ -300,6 +303,57 @@ class PurpleRobotDevice(models.Model):
             return "warning"
             
         return "ok"
+
+    def projected_battery_lifetime(self):
+        last_level = None
+        last_timestamp = None
+        
+        deltas = []
+        drain_count = 0
+        plug_count = 0
+        count = 0
+        
+        start = 0
+        
+        for reading in PurpleRobotReading.objects.filter(user_id=self.hash_key, probe='edu.northwestern.cbits.purple_robot_manager.probes.builtin.BatteryProbe').order_by('-logged')[start:(start+250)]:
+            count += 1
+            data = json.loads(reading.payload)
+            
+            timestamp = calendar.timegm(reading.logged.timetuple()) 
+            
+            plugged = (data['plugged'] != 0)
+            
+            if plugged == False:
+                drain_count += 1
+                if last_level == None or last_timestamp == None:
+                    last_level = float(data['level'])
+                    last_timestamp = timestamp
+                else:
+                    this_level = float(data['level'])
+                    this_timestamp = timestamp
+                    
+                    if this_level - last_level > 0 and (last_timestamp - this_timestamp) < (60 * 60) and this_level <= 98:
+                        delta = (float(last_timestamp - this_timestamp) / float(this_level - last_level))
+                    
+                        deltas.append(delta)
+
+                    last_level = this_level
+                    last_timestamp = this_timestamp
+            else:
+                plug_count += 1
+                
+            if drain_count > 100:
+                break
+                
+            start += 250
+                
+        if len(deltas) > 0:
+            return numpy.mean(deltas) * 100
+            
+        return -1
+                    
+            
+
 
     def status(self):
         statuses = []

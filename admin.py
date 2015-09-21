@@ -66,12 +66,26 @@ def clear_performance_metadata(modeladmin, request, queryset):
 
 clear_performance_metadata.description = 'Reset cached metadata'
 
+def mute_alerts(modeladmin, request, queryset):
+    for device in queryset:
+        device.mute_alerts = True
+        device.save()
+
+mute_alerts.description = 'Mute alerts'
+
+def unmute_alerts(modeladmin, request, queryset):
+    for device in queryset:
+        device.mute_alerts = False
+        device.save()
+
+unmute_alerts.description = 'Unmute alerts'
+
 
 class PurpleRobotDeviceAdmin(admin.ModelAdmin):
-    list_display = ('device_id', 'name', 'configuration', 'config_last_fetched', 'config_last_user_agent', 'hash_key')
-    list_filter = ['device_group', 'configuration']
+    list_display = ('device_id', 'name', 'configuration', 'config_last_fetched', 'config_last_user_agent', 'hash_key', 'mute_alerts')
+    list_filter = ['device_group', 'configuration', 'mute_alerts']
     
-    actions = [ clear_performance_metadata ]
+    actions = [ clear_performance_metadata, mute_alerts, unmute_alerts ]
     
 admin.site.register(PurpleRobotDevice, PurpleRobotDeviceAdmin)
 

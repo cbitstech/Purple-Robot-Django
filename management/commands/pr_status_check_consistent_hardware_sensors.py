@@ -21,7 +21,7 @@ HARDWARE_SENSORS = (
 
 class Command(BaseCommand):
     def handle(self, *args, **options):
-        for device in PurpleRobotDevice.objects.all():
+        for device in PurpleRobotDevice.objects.filter(mute_alerts=False):
             for sensor in HARDWARE_SENSORS:
                 last = device.most_recent_reading(sensor)
                 

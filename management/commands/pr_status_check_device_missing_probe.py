@@ -71,14 +71,14 @@ class Command(BaseCommand):
 
         start = timezone.now() - datetime.timedelta(days=START_DAYS)
         
-        for device in PurpleRobotDevice.objects.all().order_by('device_id'):
+        for device in PurpleRobotDevice.objects.filter(mute_alerts=False).order_by('device_id'):
             config = None
             
             default = PurpleRobotConfiguration.objects.filter(slug='default').first()
             
             if device.configuration != None:
                 config = device.configuration
-            elif device.device_group.configuration != None:
+            elif device.device_group != None and device.device_group.configuration != None:
                 config = device.device_group.configuration
             elif config == None:
                 config = default

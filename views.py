@@ -501,7 +501,20 @@ def pr_configuration(request, config_id):
     c['config'] = get_object_or_404(PurpleRobotConfiguration, slug=config_id)
 
     return render_to_response('purple_robot_configuration.html', c)
+ 
+@staff_member_required
+@never_cache
+def pr_move_device(request):
+    group = PurpleRobotDeviceGroup.objects.filter(pk=int(request.POST['field_new_group'])).first()
     
+    device = PurpleRobotDevice.objects.filter(pk=int(request.POST['field_device_id'])).first()
+    
+    if device != None:
+        device.device_group = group
+        device.save()
+    
+    return redirect(reverse('pr_home'))
+
 @staff_member_required
 @never_cache
 def pr_add_note(request):
