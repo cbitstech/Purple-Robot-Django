@@ -76,33 +76,38 @@ def insert(connection_str, user_id, reading):
                                                            'timestamp, ' + \
                                                            'utc_logged, ' + \
                                                            'running_task_count) VALUES (%s, %s, %s, %s, %s) RETURNING id;'
+    running_count = -1
+    
+    if 'RUNNING_TASK_COUNT' in reading:
+        running_count = reading['RUNNING_TASK_COUNT']
     
     cursor.execute(reading_cmd, (user_id, \
                                  reading['GUID'], \
                                  reading['TIMESTAMP'], \
                                  datetime.datetime.fromtimestamp(reading['TIMESTAMP'], tz=pytz.utc), \
-                                 reading['RUNNING_TASK_COUNT']))
+                                 running_count))
     
-    for row in cursor.fetchall():
-        reading_id = row[0]
+    if 'RUNNING_TASKS' in reading:
+        for row in cursor.fetchall():
+            reading_id = row[0]
         
-        task_cursor = conn.cursor()
+            task_cursor = conn.cursor()
         
-        for task in reading['RUNNING_TASKS']:
-            task_cmd = 'INSERT INTO builtin_runningsoftwareprobe_runningtask(user_id, ' + \
-                                                                            'reading_id, ' + \
-                                                                            'utc_logged, ' + \
-                                                                            'package_name, ' + \
-                                                                            'package_category, ' + \
-                                                                            'task_stack_index) VALUES (%s, %s, %s, %s, %s, %s);'
+            for task in reading['RUNNING_TASKS']:
+                task_cmd = 'INSERT INTO builtin_runningsoftwareprobe_runningtask(user_id, ' + \
+                                                                                'reading_id, ' + \
+                                                                                'utc_logged, ' + \
+                                                                                'package_name, ' + \
+                                                                                'package_category, ' + \
+                                                                                'task_stack_index) VALUES (%s, %s, %s, %s, %s, %s);'
 
-            task_cursor.execute(task_cmd, (user_id, \
-                                           reading_id, 
-                                           datetime.datetime.fromtimestamp(reading['TIMESTAMP'], tz=pytz.utc), 
-                                           task['PACKAGE_NAME'], 
-                                           task['PACKAGE_CATEGORY'], 
-                                           task['TASK_STACK_INDEX']))
-        task_cursor.close()
+                task_cursor.execute(task_cmd, (user_id, \
+                                               reading_id, 
+                                               datetime.datetime.fromtimestamp(reading['TIMESTAMP'], tz=pytz.utc), 
+                                               task['PACKAGE_NAME'], 
+                                               task['PACKAGE_CATEGORY'], 
+                                               task['TASK_STACK_INDEX']))
+            task_cursor.close()
 
     conn.commit()
         

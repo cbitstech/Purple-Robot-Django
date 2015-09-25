@@ -288,7 +288,12 @@ class DataSizeNode(template.Node):
         self.data_size = template.Variable(data_size)
 
     def render(self, context):
-        data_size = float(self.data_size.resolve(context))
+        size = self.data_size.resolve(context)
+        
+        if size == None:
+            size = 0
+        
+        data_size = float(size)
         
         if data_size < 0:
             return 'Unknown / None'
@@ -315,7 +320,12 @@ class TotalDataSizeNode(template.Node):
         data_size = 0
         
         for device in PurpleRobotDevice.objects.all():
-            data_size += device.total_readings_size()
+            size = device.total_readings_size()
+            
+            if size == None:
+                size = 0
+            
+            data_size += size
             
         data_size *= 2
         

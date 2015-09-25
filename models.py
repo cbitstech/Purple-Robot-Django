@@ -7,6 +7,7 @@ import numpy
 import pytz
 import string
 import time
+import traceback
 
 from django.core.cache import cache
 from django.core.urlresolvers import reverse
@@ -115,7 +116,7 @@ class PurpleRobotDevice(models.Model):
         
         if ('latest_readings' in perf_data) == False:
             perf_data['latest_readings'] = {}
-        else:
+        elif (new_reading.probe in perf_data['latest_readings']):
             old_reading = PurpleRobotReading.objects.filter(pk=perf_data['latest_readings'][new_reading.probe]).first()
 
         if ('reading_counts' in perf_data) == False:
@@ -726,10 +727,13 @@ class PurpleRobotPayload(models.Model):
             
                 if device != None:
                     device.set_most_recent_reading(reading)
-            except KeyError:
+            except KeyError as e:
+                print('Missing Key: ' + json.dumps(item, indent=2))
+                print(traceback.format_exc())
+                
                 if tags is None or len(tags) == 0:
                     tags = 'ingest_error'
-                else:
+                elif tags.find('ingest_error') == -1:
                     tags += ' ingest_error'
     
         if tags is None or tags.find(tag) == -1:
