@@ -37,7 +37,7 @@ class Command(BaseCommand):
             t = os.path.getmtime('/tmp/reflected_payload.lock')
             created = datetime.datetime.fromtimestamp(t)
             
-            if (datetime.datetime.now() - created).total_seconds() > 120:
+            if (datetime.datetime.now() - created).total_seconds() > 300:
                 print('reflect_payloads: Stale lock - removing...')
                 os.remove('/tmp/reflected_payload.lock')
             else:
@@ -96,17 +96,16 @@ class Command(BaseCommand):
                         if response_obj['Status'] == 'success':
                             reflected_payloads.append(pr_payload.pk)
                         
-                            touch('/tmp/reflected_payload.lock')
                     except ValueError:
                         # Missing attachment error - continue on...
                         
                         reflected_payloads.append(pr_payload.pk)
-                    
-                        touch('/tmp/reflected_payload.lock')
                     except ConnectionError:
                         pass
                     except ReadTimeout:
                         pass
+                        
+                    touch('/tmp/reflected_payload.lock')
 
         for pk in reflected_payloads:
             pr_payload = PurpleRobotPayload.objects.get(pk=pk)
