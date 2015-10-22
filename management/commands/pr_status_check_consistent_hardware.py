@@ -22,10 +22,11 @@ class Command(BaseCommand):
             for reading in PurpleRobotReading.objects.filter(user_id=device.hash_key, probe=HARDWARE_PROBE, logged__gte=start):
                 payload = json.loads(reading.payload)
                 
-                if mac == None:
-                    mac = payload['WIFI_MAC']
-                elif mac != payload['WIFI_MAC']:
-                    same_mac = False
+                if 'WIFI_MAC' in payload:
+                    if mac == None:
+                        mac = payload['WIFI_MAC']
+                    elif mac != payload['WIFI_MAC']:
+                        same_mac = False
             
             if same_mac:
                 cancel_alert(tags=TAG, user_id=device.hash_key)
