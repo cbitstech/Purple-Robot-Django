@@ -163,15 +163,11 @@ class PurpleRobotDevice(models.Model):
         
         if 'latest_payload' in perf_data:
             return PurpleRobotPayload.objects.filter(pk=perf_data['latest_payload']).first()
-        else:
-            perf_data['latest_payload'] = -1
 
         payload = PurpleRobotPayload.objects.filter(user_id=self.hash_key).order_by('-added').first()
         
         if payload != None:
             perf_data['latest_payload'] = payload.pk
-        else:
-            perf_data['latest_payload'] = -1
                     
         self.performance_metadata = json.dumps(perf_data, indent=2)
         self.save()
