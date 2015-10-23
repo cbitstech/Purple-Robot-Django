@@ -1,3 +1,4 @@
+import arrow
 import datetime
 import pytz
 
@@ -109,7 +110,7 @@ class TimestampAgoNode(template.Node):
         
         now = timezone.now()
         
-        diff = now - date_obj
+        diff = arrow.get(now.isoformat()).datetime - arrow.get(date_obj.isoformat()).datetime
         
         ago_str = 'Unknown'
         
@@ -150,7 +151,7 @@ class DateAgoNode(template.Node):
         
         now = timezone.now()
         
-        diff = now - date_obj
+        diff = arrow.get(now.isoformat()).datetime - arrow.get(date_obj.isoformat()).datetime
         
         ago_str = 'Unknown'
         
@@ -239,6 +240,15 @@ class DeviceAlertsNode(template.Node):
     def render(self, context):
         user_id = self.user_id.resolve(context)
         
+        device = PurpleRobotDevice.objects.filter(hash_key=user_id).first()
+        
+        if device != None and device.mute_alerts:
+            context['class'] = ''
+            context['value'] = 0
+            context['tooltip'] = 'No alerts.'
+            
+            return render_to_string('tag_pr_device_alerts.html', context)
+        
         alerts = PurpleRobotAlert.objects.filter(user_id=user_id, dismissed=None).order_by('-severity')
         
         tooltip = 'No alerts.'
@@ -259,7 +269,7 @@ class DeviceAlertsNode(template.Node):
                     
         if severity > 1:
             context['class'] = 'text-danger'
-        elif severity > 1:
+        elif severity > 0:
             context['class'] = 'text-warning'
         else:
             context['class'] = ''

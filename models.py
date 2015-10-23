@@ -1,3 +1,4 @@
+import arrow
 import calendar
 import datetime
 import importlib
@@ -18,6 +19,21 @@ from django.dispatch.dispatcher import receiver
 from django.utils import timezone
 from django.utils.safestring import SafeString
 from django.utils.text import slugify
+
+PROBE_CACHE_MAP = {
+    'edu.northwestern.cbits.purple_robot_manager.probes.builtin.RobotHealthProbe': [
+        'last_pending_count'
+    ],
+    'edu.northwestern.cbits.purple_robot_manager.probes.builtin.HardwareInformationProbe': [
+        'last_model'
+    ],
+    'edu.northwestern.cbits.purple_robot_manager.probes.builtin.SoftwareInformationProbe': [
+        'last_platform'
+    ],
+    'edu.northwestern.cbits.purple_robot_manager.probes.builtin.BatteryProbe': [
+        'last_battery'
+    ],
+}
 
 def my_slugify(str_obj):
     return slugify(str_obj.replace('.', ' ')).replace('-', '_')
@@ -68,7 +84,10 @@ class PurpleRobotDevice(models.Model):
     config_last_user_agent = models.CharField(max_length=1024, null=True, blank=True)
     hash_key = models.CharField(max_length=128, null=True, blank=True)
     
+    first_reading_timestamp = models.BigIntegerField(default=0)
+    
     mute_alerts = models.BooleanField(default=False)
+    test_device = models.BooleanField(default=False)
     
     performance_metadata = models.TextField(max_length=1048576, default='{}')
 
@@ -87,6 +106,28 @@ class PurpleRobotDevice(models.Model):
         self.init_hash()
         
         return self.hash_key
+        
+    def earliest_reading_date(self):
+        self.init_hash()
+        
+        if self.first_reading_timestamp != 0:
+            if self.first_reading_timestamp > 0:
+                return datetime.datetime.utcfromtimestamp(self.first_reading_timestamp).replace(tzinfo=pytz.utc)
+            else:
+                return None
+        
+        first = PurpleRobotReading.objects.filter(user_id=self.hash_key).order_by('logged').first()
+        
+        if first != None:
+            self.first_reading_timestamp = int(time.mktime(first.logged.timetuple()))
+            self.save()
+            
+            return first.logged
+        else:
+            self.first_reading_timestamp = -1
+            self.save()
+            
+        return None
         
     def fetch_reading_count(self, probe):
         perf_data = json.loads(self.performance_metadata)
@@ -139,6 +180,11 @@ class PurpleRobotDevice(models.Model):
             updated = True
             
         if updated:
+            if new_reading.probe in PROBE_CACHE_MAP:
+                for key in PROBE_CACHE_MAP[new_reading.probe]:
+                    if key in perf_data:
+                        del perf_data[key]
+                    
             self.performance_metadata = json.dumps(perf_data, indent=2)
             self.save()
 
@@ -147,21 +193,22 @@ class PurpleRobotDevice(models.Model):
 
         old_payload = None
         
-        if ('latest_payload' in perf_data) == False:
-            perf_data['latest_payload'] = -1
-        else:
+        if 'latest_payload' in perf_data:
             old_payload = PurpleRobotPayload.objects.filter(pk=perf_data['latest_payload']).first()
             
-        if old_payload != None and new_payload.added > old_payload.added:
+        if (old_payload != None and new_payload.added > old_payload.added) or old_payload == None:
             perf_data['latest_payload'] = new_payload.pk
             
             self.performance_metadata = json.dumps(perf_data, indent=2)
             self.save()
+            
+            self.set_performance_info('last_upload', new_payload.added.isoformat())
+            
 
     def most_recent_payload(self):
         perf_data = json.loads(self.performance_metadata)
         
-        if 'latest_payload' in perf_data:
+        if 'latest_payload' in perf_data and perf_data['latest_payload'] != -1:
             return PurpleRobotPayload.objects.filter(pk=perf_data['latest_payload']).first()
 
         payload = PurpleRobotPayload.objects.filter(user_id=self.hash_key).order_by('-added').first()
@@ -187,14 +234,50 @@ class PurpleRobotDevice(models.Model):
         reading = PurpleRobotReading.objects.filter(user_id=self.hash_key, probe=probe_name).order_by('-logged').first()
         
         if reading != None:
-            perf_data['latest_readings'][probe_name] = reading.pk
-        else:
-            perf_data['latest_readings'][probe_name] = -1
-                    
-        self.performance_metadata = json.dumps(perf_data, indent=2)
-        self.save()
+            self.set_most_recent_reading(reading)
         
         return reading
+
+    def earliest_reading(self, probe_name):
+        perf_data = json.loads(self.performance_metadata)
+        
+        if 'earliest_readings' in perf_data:
+            if probe_name in perf_data['earliest_readings']:
+                return PurpleRobotReading.objects.filter(pk=perf_data['earliest_readings'][probe_name]).first()
+        else:
+            perf_data['earliest_readings'] = {}
+
+        reading = PurpleRobotReading.objects.filter(user_id=self.hash_key, probe=probe_name).order_by('logged').first()
+        
+        if reading != None:
+            self.set_earliest_reading(reading)
+        
+        return reading
+
+    def set_earliest_reading(self, new_reading):
+        perf_data = json.loads(self.performance_metadata)
+
+        old_reading = None
+        updated = False
+        
+        if ('earliest_readings' in perf_data) == False:
+            perf_data['earliest_readings'] = {}
+        elif (new_reading.probe in perf_data['earliest_readings']):
+            old_reading = PurpleRobotReading.objects.filter(pk=perf_data['earliest_readings'][new_reading.probe]).first()
+
+        if old_reading == None or new_reading.logged < old_reading.logged:
+            perf_data['earliest_readings'][new_reading.probe] = new_reading.pk
+            updated = True
+            
+        if updated:
+            if new_reading.probe in PROBE_CACHE_MAP:
+                for key in PROBE_CACHE_MAP[new_reading.probe]:
+                    if key in perf_data:
+                        del perf_data[key]
+                    
+            self.performance_metadata = json.dumps(perf_data, indent=2)
+            self.save()
+
 
     def clear_most_recent_reading(self, probe_name, new_pk=None):
         perf_data = json.loads(self.performance_metadata)
@@ -212,12 +295,27 @@ class PurpleRobotDevice(models.Model):
     def last_upload(self):
         self.init_hash()
         
+        last_upload = self.get_performance_info('last_upload')
+        
+        if last_upload != None:
+            if last_upload == '':
+                return None
+        
+            last_upload = arrow.get(last_upload)
+            
+            return last_upload
+        
+        
         payload = self.most_recent_payload()
         
         if payload != None:
-            return payload.added
+            last_upload = payload.added
             
-        return None
+            self.set_performance_info('last_upload', last_upload.isoformat())        
+        else:
+            self.set_performance_info('last_upload', '')        
+        
+        return last_upload
         
     def last_upload_status(self):
         upload = self.last_upload()
@@ -275,21 +373,26 @@ class PurpleRobotDevice(models.Model):
     def last_battery(self):
         self.init_hash()
 
-        data = cache.get(self.hash_key + '__last_battery')
-        
-        if data != None:
-            return data['level']
+        battery = self.get_performance_info('last_battery')
+
+        if battery != None:
+            if battery == -1:
+                return None
+            
+            return battery
             
         reading = self.most_recent_reading('edu.northwestern.cbits.purple_robot_manager.probes.builtin.BatteryProbe')
         
         if reading != None:
             data = json.loads(reading.payload)
             
-            cache.set(self.hash_key + '__last_battery', data, 15 * 60)
+            battery = data['level']
             
-            return data['level']
+            self.set_performance_info('last_battery', battery)            
+        else:
+            self.set_performance_info('last_battery', -1)            
             
-        return None
+        return battery
 
     def last_battery_status(self):
         battery = self.last_battery()
@@ -353,6 +456,9 @@ class PurpleRobotDevice(models.Model):
 
 
     def status(self):
+        if self.mute_alerts:
+            return 'ok'
+        
         statuses = []
         
         severity = self.alert_severity()
@@ -389,14 +495,39 @@ class PurpleRobotDevice(models.Model):
             readings.append(item)
         
         return readings
+    
+    def get_performance_info(self, key):
+        perf_data = json.loads(self.performance_metadata)
+        
+        if key in perf_data:
+            return perf_data[key]
+            
+        return None
+
+    def set_performance_info(self, key, value):
+        perf_data = json.loads(self.performance_metadata)
+        
+        perf_data[key] = value
+            
+        self.performance_metadata = json.dumps(perf_data, indent=2)
+        self.save()
 
     def last_pending_count(self):
+        count = self.get_performance_info('last_pending_count')
+        
+        if count != None:
+            return count
+
         data = self.last_robot_health()
         
         if data != None:
-            return data['PENDING_COUNT']
+            count = data['PENDING_COUNT']
             
-        return None
+            self.set_performance_info('last_pending_count', count)
+        else:
+            self.set_performance_info('last_pending_count', 0)
+            
+        return count
 
     def triggers(self):
         data = self.last_robot_health()
@@ -409,27 +540,31 @@ class PurpleRobotDevice(models.Model):
     def last_hardware_info(self):
         self.init_hash()
         
-        data = cache.get(self.hash_key + '__last_hardware_info')
-        
-        if data != None:
-            return data
+        data = None
         
         reading = self.most_recent_reading('edu.northwestern.cbits.purple_robot_manager.probes.builtin.HardwareInformationProbe')
         
         if reading != None:
             data = json.loads(reading.payload)
             
-            cache.set(self.hash_key + '__last_hardware_info', data)
-            
         return data
 
     def last_model(self):
+        model = self.get_performance_info('last_model')
+        
+        if model != None:
+            return model
+
         data = self.last_hardware_info()
             
         if data != None:
-            return data['MODEL']
-            
-        return None
+            model = data['MODEL']
+
+            self.set_performance_info('last_model', model)
+        else:
+            self.set_performance_info('last_model', 'Unknown')
+        
+        return model
 
     def last_robot_health(self):
         self.init_hash()
@@ -446,32 +581,35 @@ class PurpleRobotDevice(models.Model):
     def last_software_info(self):
         self.init_hash()
         
-        data = cache.get(self.hash_key + '__last_software_info')
-        
-        if data != None:
-            return data
-    
         reading = self.most_recent_reading('edu.northwestern.cbits.purple_robot_manager.probes.builtin.SoftwareInformationProbe')
+        
+        data = None
         
         if reading != None:
             data = json.loads(reading.payload)
             
-            cache.set(self.hash_key + '__last_software_info', data)
-            
         return data
 
     def last_platform(self):
+        platform = self.get_performance_info('last_platform')
+        
+        if platform != None:
+            return platform
+            
         data = self.last_software_info()
         
         if data != None:
-            return 'Android ' + data['RELEASE']
+            platform = 'Android ' + data['RELEASE']
             
-        return None
+            self.set_performance_info('last_platform', platform)
+        else:
+            self.set_performance_info('last_platform', 'Unknown')
+                
+            
+        return platform
 
     def last_location(self):
         self.init_hash()
-
-        location = cache.get(self.hash_key + '__last_robot_location')
         
         if location != None:
             return location
@@ -482,8 +620,6 @@ class PurpleRobotDevice(models.Model):
             data = json.loads(reading.payload)
             
             location = { 'latitude': data['LATITUDE'], 'longitude': data['LONGITUDE'] }
-            
-            cache.set(self.hash_key + '__last_robot_location', location)
 
         return location
 
@@ -723,6 +859,7 @@ class PurpleRobotPayload(models.Model):
             
                 if device != None:
                     device.set_most_recent_reading(reading)
+                    device.set_earliest_reading(reading)
             except KeyError as e:
                 print('Missing Key: ' + json.dumps(item, indent=2))
                 print(traceback.format_exc())
