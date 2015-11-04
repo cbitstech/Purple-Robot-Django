@@ -1,7 +1,11 @@
-import json
-import hashlib
+import arrow
 import datetime
+import hashlib
+import json
+import numpy
+import pytz
 
+from django.conf import settings
 from django.contrib.admin.views.decorators import staff_member_required
 from django.core.context_processors import csrf
 from django.core.urlresolvers import reverse
@@ -17,6 +21,8 @@ from models import PurpleRobotPayload, PurpleRobotTest, PurpleRobotEvent, \
                    PurpleRobotReport, PurpleRobotExportJob, PurpleRobotReading, \
                    PurpleRobotConfiguration, PurpleRobotDevice, PurpleRobotDeviceGroup, \
                    PurpleRobotDeviceNote
+                   
+from performance import *
 
 @never_cache
 def config(request):
@@ -97,6 +103,12 @@ def ingest_payload(request):
                         
                         if reading != None:
                             reading.attachment.save(v.name, v)
+                            
+                            reading.size = len(reading.payload)
+                            reading.size += reading.attachment.size
+                            
+                            reading.save()
+
             else:
                 result['Error'] = 'Source checksum ' + json_obj['Checksum'] + ' doesn\'t match destination checksum ' + checksum_str + '.'
         except Exception, e:
@@ -152,11 +164,14 @@ def ingest_payload_print(request):
 @never_cache
 def log_event(request):
     try:
+        tz = pytz.timezone(settings.TIME_ZONE)
         payload = json.loads(request.POST['json'])
     
-        logged = datetime.datetime.fromtimestamp(int(payload['timestamp']))
+        logged = tz.localize(datetime.datetime.fromtimestamp(int(payload['timestamp'])))
+        
+#        event = PurpleRobotEvent.objects.filter(logged=logged, event=payload['event_type']).first()
     
-        if PurpleRobotEvent.objects.filter(logged=logged, event=payload['event_type']).count() == 0:
+        if True:
             try:
                 if len(payload['user_id'].strip()) == 0:
                     payload['user_id'] = '-'
@@ -167,8 +182,11 @@ def log_event(request):
             event.logged = logged
             event.event = payload['event_type']
             event.user_id = payload['user_id']
-        
-            event.save()
+            
+            try:
+                event.save()
+            except pytz.AmbiguousTimeError:
+                pass
     
         return HttpResponse(json.dumps({ 'result': 'success' }), content_type='application/json')
     except UnreadablePostError:
@@ -449,7 +467,7 @@ def pr_add_group(request):
 @never_cache
 def pr_add_device(request, group_id):
     group = PurpleRobotDeviceGroup.objects.filter(group_id=group_id).first()
-
+    
     if group != None:
         if request.method == 'POST':
             device_id = request.POST['device_id']
@@ -460,13 +478,25 @@ def pr_add_device(request, group_id):
             elif PurpleRobotDevice.objects.filter(device_id=device_id).count() == 0:
                 device = PurpleRobotDevice(device_id=device_id, name=device_name, device_group=group)
 
+                perf_data = json.loads(device.performance_metadata)
+                
+                perf_data['latest_readings'] = {}
+                perf_data['latest_readings']['edu.northwestern.cbits.purple_robot_manager.probes.builtin.RobotHealthProbe'] = -1
+                perf_data['latest_readings']['edu.northwestern.cbits.purple_robot_manager.probes.builtin.BatteryProbe'] = -1
+                perf_data['latest_readings']['edu.northwestern.cbits.purple_robot_manager.probes.builtin.SoftwareInformationProbe'] = -1
+                perf_data['latest_readings']['edu.northwestern.cbits.purple_robot_manager.probes.builtin.HardwareInformationProbe'] = -1
+                
+                device.performance_metadata = json.dumps(perf_data, indent=2)
+
                 device.save()
             else:
                 request.session['pr_messages'] = [ 'Unable to create device. A device already exists with identifier "' + device_id + '".' ]
     else:
         request.session['pr_messages'] = [ 'Unable to locate group with identifier "' + group_id + '" and create new device.' ]
     
-    return redirect(reverse('pr_home'))
+    response = redirect(reverse('pr_home'))
+    
+    return response
 
 @staff_member_required
 @never_cache
@@ -535,3 +565,102 @@ def pr_add_note(request):
 
     return HttpResponse(json.dumps(response, indent=2), content_type='application/json')
     
+@never_cache
+def pr_status(request):
+    c = RequestContext(request)
+    c.update(csrf(request))
+
+    c['server_performance'] = fetch_performance_samples('system', 'server_performance')
+    
+    c['ingest_performance'] = fetch_performance_samples('system', 'reading_ingestion_performance')
+    c['mirror_performance'] = fetch_performance_samples('system', 'reading_mirror_performance')
+    c['pending_ingest'] = fetch_performance_samples('system', 'pending_ingest_payloads')
+    c['pending_mirror'] = fetch_performance_samples('system', 'pending_mirror_payloads')
+    c['skipped_ingest'] = fetch_performance_samples('system', 'skipped_ingest_payloads')
+    c['skipped_mirror'] = fetch_performance_samples('system', 'skipped_mirror_payloads')
+    c['uploads_today'] = fetch_performance_samples('system', 'uploads_today')
+    c['uploads_hour'] = fetch_performance_samples('system', 'uploads_hour')
+
+    c['pending_mirror_ages'] = fetch_performance_samples('system', 'pending_mirror_ages')
+    c['pending_ingest_ages'] = fetch_performance_samples('system', 'pending_ingest_ages')
+
+    c['payload_uploads'] = fetch_performance_samples('system', 'payload_uploads')[-1]['counts']
+    
+    c['timezone'] = settings.TIME_ZONE
+
+    tz = pytz.timezone(settings.TIME_ZONE)    
+    now = arrow.get(timezone.now().astimezone(tz))
+
+    start_today = now.replace(hour=0, minute=0, second=0, microsecond=0).datetime
+    start_hour = now.datetime - datetime.timedelta(hours=1)
+
+    week_ago = timezone.now() - datetime.timedelta(days=7)
+    
+    upload_seconds = (arrow.get(c['uploads_today'][-1]['sample_date']).datetime.astimezone(tz) - start_today).total_seconds()
+
+    c['now'] = now
+    c['start_today'] = start_today
+    c['start_hour'] = start_hour
+    
+    c['upload_count'] = '-'
+    c['upload_rate'] = '-'
+    
+    if len(c['uploads_today']) > 0:
+        c['upload_count'] = c['uploads_today'][-1]['count']
+        c['upload_rate'] = c['uploads_today'][-1]['count'] / upload_seconds
+        c['upload_seconds'] = upload_seconds
+        c['uploads_today'] = arrow.get(c['uploads_today'][-1]['sample_date']).datetime.astimezone(tz) # c['uploads_today'][-1]['sample_date']
+
+    upload_seconds = (arrow.get(c['uploads_hour'][-1]['sample_date']).datetime.astimezone(tz) - start_hour).total_seconds()
+
+    c['upload_hour_count'] = '-'
+    c['upload_hour_rate'] = '-'
+    
+    if len(c['uploads_hour']) > 0:
+        c['upload_hour_count'] = c['uploads_hour'][-1]['count']
+        c['upload_hour_rate'] = c['uploads_hour'][-1]['count'] / upload_seconds
+        c['upload_hour_seconds'] = upload_seconds
+        c['uploads_hour'] = arrow.get(c['uploads_hour'][-1]['sample_date']).datetime.astimezone(tz) # c['uploads_hour'][-1]['sample_date']
+    
+    active_count = 0
+    inactive_count = 0
+    
+    for device in PurpleRobotDevice.objects.all():
+        last_reading = device.most_recent_reading('edu.northwestern.cbits.purple_robot_manager.probes.builtin.RobotHealthProbe')
+        
+        if last_reading != None and last_reading.logged > week_ago:
+            active_count += 1
+        else:
+            inactive_count += 1
+    
+    c['active_devices'] = active_count
+    c['inactive_devices'] = inactive_count
+        
+    day_items = []
+    hour_items = []
+    
+    for item in c['ingest_performance']:
+        if arrow.get(item['sample_date']).datetime >= start_today:
+            day_items.append(item['num_extracted'] / (item['extraction_time'] + item['query_time']))
+
+        if arrow.get(item['sample_date']).datetime >= start_hour:
+            hour_items.append(item['num_extracted'] / (item['extraction_time'] + item['query_time']))
+
+    c['ingest_average_day'] = numpy.mean(day_items)
+    c['ingest_average_hour'] = numpy.mean(hour_items)
+
+    day_items = []
+    hour_items = []
+    
+    for item in c['mirror_performance']:
+        if arrow.get(item['sample_date']).datetime >= start_today:
+            day_items.append(item['num_mirrored'] / (item['extraction_time'] + item['query_time']))
+
+        if arrow.get(item['sample_date']).datetime >= start_hour:
+            hour_items.append(item['num_mirrored'] / (item['extraction_time'] + item['query_time']))
+    
+    c['mirror_average_day'] = numpy.mean(day_items)
+    c['mirror_average_hour'] = numpy.mean(hour_items)
+    
+    return render_to_response('purple_robot_status.html', c)
+

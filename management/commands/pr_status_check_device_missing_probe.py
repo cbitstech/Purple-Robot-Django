@@ -9,6 +9,8 @@ from django.utils import timezone
 from purple_robot_app.models import PurpleRobotDevice, PurpleRobotConfiguration, PurpleRobotReading
 from purple_robot_app.management.commands.pr_check_status import log_alert, cancel_alert
 
+from purple_robot_app.device_info import can_sense
+
 TAG = 'expected_probe_missing'
 START_DAYS = 7
 
@@ -66,12 +68,15 @@ class Command(BaseCommand):
                 os.remove('/tmp/expected_probe_missing_check.lock')
             else:
                 return
-    
+        
         touch('/tmp/expected_probe_missing_check.lock')
 
         start = timezone.now() - datetime.timedelta(days=START_DAYS)
         
         for device in PurpleRobotDevice.objects.filter(mute_alerts=False).order_by('device_id'):
+            model = device.last_model()
+            mfgr = device.last_manufacturer()
+            
             config = None
             
             default = PurpleRobotConfiguration.objects.filter(slug='default').first()
@@ -91,18 +96,32 @@ class Command(BaseCommand):
                 missing_probes = []
                 
                 for probe in config_probes:
-                    found = device.most_recent_reading(probe)
+                    if can_sense(mfgr, model, probe):
+                        found = device.most_recent_reading(probe)
                     
-                    if found == None or found.logged < start:
-                        missing_probes.append(probe.split('.')[-1])
+                        if found == None or found.logged < start:
+                            missing_probes.append(probe.split('.')[-1])
                         
 #                        if found == None:
 #                            print(device.device_id + ' ' + str(config) + ': ' + probe)
-
+                
+                platform = device.last_platform()
+                
+                if platform != None and platform.startswith('Android 5'):
+                    if 'ApplicationLaunchProbe' in missing_probes:
+                        missing_probes.remove('ApplicationLaunchProbe')
+                        
+                    if 'RunningSoftwareProbe' in missing_probes:
+                        missing_probes.remove('RunningSoftwareProbe')
                         
                 if len(missing_probes) == 0:
                     cancel_alert(tags=TAG, user_id=device.hash_key)
                 else:
-                    log_alert(message='Missing data from ' + str(len(missing_probes)) + ' probe(s). Absent probes: ' + ', '.join(missing_probes), severity=2, tags=TAG, user_id=device.hash_key)
+                    missing_probes_str = ', '.join(missing_probes[:4])
+                    
+                    if len(missing_probes) > 4:
+                        missing_probes_str = missing_probes_str + ', and ' + str(len(missing_probes) - 4) + ' more'
+                    
+                    log_alert(message='Missing data from ' + str(len(missing_probes)) + ' probe(s). Absent probes: ' + missing_probes_str, severity=2, tags=TAG, user_id=device.hash_key)
 
         os.remove('/tmp/expected_probe_missing_check.lock')

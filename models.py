@@ -10,6 +10,7 @@ import string
 import time
 import traceback
 
+from django.conf import settings
 from django.core.cache import cache
 from django.core.urlresolvers import reverse
 from django.db import models, connection
@@ -19,6 +20,10 @@ from django.dispatch.dispatcher import receiver
 from django.utils import timezone
 from django.utils.safestring import SafeString
 from django.utils.text import slugify
+
+from performance import fetch_performance_samples
+
+PROBE_USER_TIME_CACHE = {}
 
 PROBE_CACHE_MAP = {
     'edu.northwestern.cbits.purple_robot_manager.probes.builtin.RobotHealthProbe': [
@@ -34,6 +39,8 @@ PROBE_CACHE_MAP = {
         'last_battery'
     ],
 }
+
+PAYLOAD_PERFORMANCE_CACHE = {}
 
 def my_slugify(str_obj):
     return slugify(str_obj.replace('.', ' ')).replace('-', '_')
@@ -150,23 +157,33 @@ class PurpleRobotDevice(models.Model):
         return perf_data['reading_counts'][probe]
         
     def set_most_recent_reading(self, new_reading):
+        key = str(self.pk) + '-' + new_reading.probe
+
         perf_data = json.loads(self.performance_metadata)
 
-        old_reading = None
+        old_reading_date = None
         updated = False
         
         if ('latest_readings' in perf_data) == False:
             perf_data['latest_readings'] = {}
         elif (new_reading.probe in perf_data['latest_readings']):
-            old_reading = PurpleRobotReading.objects.filter(pk=perf_data['latest_readings'][new_reading.probe]).first()
+            
+            if (key in PROBE_USER_TIME_CACHE) == False:
+                old_reading = PurpleRobotReading.objects.filter(pk=perf_data['latest_readings'][new_reading.probe]).first()
+                
+                if old_reading != None:
+                    PROBE_USER_TIME_CACHE[key] = old_reading.logged
+                    
+            if key in PROBE_USER_TIME_CACHE:
+                old_reading_date = PROBE_USER_TIME_CACHE[key]
 
         if ('reading_counts' in perf_data) == False:
             perf_data['reading_counts'] = {}
             
         if (new_reading.probe in perf_data['reading_counts']) == False:
             perf_data['reading_counts'][new_reading.probe] = self.fetch_reading_count(new_reading.probe)
-            
-        perf_data['reading_counts'][new_reading.probe] = perf_data['reading_counts'][new_reading.probe] + 1
+        
+        perf_data['reading_counts'][new_reading.probe] += 1
 
         if ('probes' in perf_data) == False:
             perf_data['probes'] = []
@@ -175,8 +192,10 @@ class PurpleRobotDevice(models.Model):
             perf_data['probes'].append(new_reading.probe)
             updated = True
         
-        if old_reading == None or new_reading.logged > old_reading.logged:
+        if old_reading_date == None or new_reading.logged > old_reading_date:
             perf_data['latest_readings'][new_reading.probe] = new_reading.pk
+            PROBE_USER_TIME_CACHE[key] = new_reading.logged
+            
             updated = True
             
         if updated:
@@ -235,6 +254,10 @@ class PurpleRobotDevice(models.Model):
         
         if reading != None:
             self.set_most_recent_reading(reading)
+        else:
+            perf_data['latest_readings'][probe_name] = -1
+            self.performance_metadata = json.dumps(perf_data, indent=2)
+            self.save()
         
         return reading
 
@@ -301,7 +324,7 @@ class PurpleRobotDevice(models.Model):
             if last_upload == '':
                 return None
         
-            last_upload = arrow.get(last_upload)
+            last_upload = arrow.get(last_upload).datetime
             
             return last_upload
         
@@ -566,6 +589,23 @@ class PurpleRobotDevice(models.Model):
         
         return model
 
+    def last_manufacturer(self):
+        mfgr = self.get_performance_info('last_manufacturer')
+        
+        if mfgr != None:
+            return mfgr
+
+        data = self.last_hardware_info()
+            
+        if data != None:
+            mfgr = data['MANUFACTURER']
+
+            self.set_performance_info('last_manufacturer', mfgr)
+        else:
+            self.set_performance_info('last_manufacturer', 'Unknown')
+        
+        return mfgr
+
     def last_robot_health(self):
         self.init_hash()
     
@@ -662,6 +702,8 @@ class PurpleRobotDevice(models.Model):
 
         readings = []
         
+        start = timezone.now() - datetime.timedelta(days=1)
+        
         for probe_name in self.probes():
             item = self.most_recent_reading(probe_name)
             
@@ -676,15 +718,28 @@ class PurpleRobotDevice(models.Model):
 #                    cursor = connection.cursor()
 #                    cursor.execute("SELECT COUNT(logged) FROM \"purple_robot_app_purplerobotreading\" WHERE (\"purple_robot_app_purplerobotreading\".\"probe\" = '%s' AND \"purple_robot_app_purplerobotreading\".\"user_id\" = '%s' );" % (item.probe, self.hash_key))
 #                    row = cursor.fetchone()
-                    reading['num_readings'] = self.fetch_reading_count(probe_name)
+#                    reading['num_readings'] = self.fetch_reading_count(probe_name)
 #                    reading['num_readings'] = 0
 #                    reading['num_readings'] = PurpleRobotReading.objects.filter(user_id=self.hash_key, probe=item.probe).count()
                     reading['status'] = 'TODO'
 
                     reading['frequency'] = 'Unknown'
-                
-                    for test in PurpleRobotTest.objects.filter(probe=item.probe, user_id=self.hash_key):
-                        reading['frequency'] = test.average_frequency()
+                    reading['num_readings'] = 'None'
+                                        
+                    samples = fetch_performance_samples(self.hash_key, item.probe, start=start)
+                    
+                    count = 0
+                    
+                    for sample in samples:
+                        count += sample['sample_count']
+                        
+                    if count > 0:
+                        reading['frequency'] = count / datetime.timedelta(days=1).total_seconds()
+
+                    reading['num_readings'] = count
+                    
+#                    for test in PurpleRobotTest.objects.filter(probe=item.probe, user_id=self.hash_key):
+#                        reading['frequency'] = test.average_frequency()
             
                 readings.append(reading)
         
@@ -853,13 +908,47 @@ class PurpleRobotPayload(models.Model):
                 reading.payload = json.dumps(item, indent=2)
                 reading.logged = datetime.datetime.utcfromtimestamp(item['TIMESTAMP']).replace(tzinfo=pytz.utc)
                 reading.guid = item['GUID']
+                
                 reading.size = len(reading.payload)
-
+            
+                if reading.attachment != None:
+                    try:
+                        reading.size += reading.attachment.size
+                    except ValueError:
+                        pass # No attachment...
+            
                 reading.save()
             
                 if device != None:
                     device.set_most_recent_reading(reading)
                     device.set_earliest_reading(reading)
+                    
+                if settings.PURPLE_ROBOT_DISABLE_DATA_CHECKS == False:
+                    probe_name = my_slugify(item['PROBE']).replace('edu_northwestern_cbits_purple_robot_manager_probes_', '')
+                
+                    found = False
+                
+                    probe = None
+                
+                    if probe_name in PAYLOAD_PERFORMANCE_CACHE:
+                        probe = PAYLOAD_PERFORMANCE_CACHE[probe_name]
+                    else:
+                        for app in settings.INSTALLED_APPS:
+                            if found == False:
+                                try:
+                                    probe = importlib.import_module(app + '.management.commands.analytics.' + probe_name)
+                                
+                                    found = True
+                                except ImportError:
+                                    pass
+                
+                        if found == False:
+                            probe = importlib.import_module('purple_robot_app.management.commands.analytics.generic_probe')
+
+                    PAYLOAD_PERFORMANCE_CACHE[probe_name] = probe
+                
+                    probe.log_reading(reading)
+                    
             except KeyError as e:
                 print('Missing Key: ' + json.dumps(item, indent=2))
                 print(traceback.format_exc())
@@ -883,7 +972,7 @@ class PurpleRobotPayload(models.Model):
 class PurpleRobotEvent(models.Model):
     event = models.CharField(max_length=1024)
     name = models.CharField(max_length=1024, null=True, blank=True, db_index=True)
-    logged = models.DateTimeField()
+    logged = models.DateTimeField(db_index=True)
     user_id = models.CharField(max_length=1024, db_index=True)
 
     payload = models.TextField(max_length=(1024 * 1024 * 8), null=True, blank=True)

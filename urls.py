@@ -4,7 +4,7 @@ from views import ingest_payload_print, log_event, pr_home, pr_by_probe, \
     pr_by_user, test_report, test_details_json, tests_by_user, \
     create_export_job, fetch_export_file, tests_all, ingest_payload, config, \
     pr_device, pr_add_group, pr_add_device, pr_configurations, pr_configuration, \
-    pr_device_probe, pr_add_note, pr_remove_device, pr_move_device
+    pr_device_probe, pr_add_note, pr_remove_device, pr_move_device, pr_status
 
 urlpatterns = patterns('',
     url(r'^config$', config, name='pr_config'),
@@ -21,6 +21,7 @@ urlpatterns = patterns('',
     url(r'^device/(?P<device_id>.+)$', pr_device, name='pr_device'),
     url(r'^probes$', pr_by_probe, name='pr_by_probe'),
     url(r'^user$', pr_by_user, name='pr_by_user'),
+    url(r'^status$', pr_status, name='pr_status'),
     url(r'^test/(?P<slug>.+)$', test_report, name='test_report'),
     url(r'^tests/(?P<slug>.+)/detail.json$', test_details_json, name='test_details_json'),
     url(r'^tests/(?P<user_id>.+)$', tests_by_user, name='tests_by_user'),

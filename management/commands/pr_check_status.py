@@ -76,7 +76,7 @@ class Command(BaseCommand):
             t = os.path.getmtime('/tmp/check_status.lock')
             created = datetime.datetime.fromtimestamp(t)
             
-            if (datetime.datetime.now() - created).total_seconds() > 60 * 60:
+            if (datetime.datetime.now() - created).total_seconds() > 6 * 60 * 60:
                 print('check_status: Stale lock - removing...')
                 os.remove('/tmp/check_status.lock')
             else:
@@ -91,7 +91,7 @@ class Command(BaseCommand):
         
                     for command_name in command_names:
                         if command_name.startswith('pr_status_check_'):
-    #                        print('Running: ' + command_name)
+#                             print('Running: ' + command_name)
                             call_command(command_name)
                     
                     touch('/tmp/check_status.lock')

@@ -1,0 +1,602 @@
+{% extends "purple_robot_base.html" %}
+{% load static %}
+{% block 'title' %}Site Status{% endblock %}
+{% block 'content' %}
+	<div class="row">
+		<div class="col-md-12">
+			<h1>Site Status</h1>
+		</div>
+	</div>
+	
+	<div class="row" style="margin-bottom: 2em;">
+		<div class="col-md-9">
+			<h3>Payload Uploads</h3>
+			<div id="payload_uploads_chart" style="border: 1px solid #808080; height: 180px; width: 100%; overflow: hidden;"></div>
+
+			<h3>Payloads &rarr; Readings Performance</h3>
+			<div id="ingest_readings_chart" style="border: 1px solid #808080; height: 180px; width: 100%; overflow: hidden;"></div>
+
+			<h3>Pending Ingest Payloads</h3>
+			<div id="ingest_pending_chart" style="border: 1px solid #808080; height: 180px; width: 100%; overflow: hidden;"></div>
+
+			<h3>Payloads &rarr; Mirror Performance</h3>
+			<div id="mirror_readings_chart" style="border: 1px solid #808080; height: 180px; width: 100%; overflow: hidden;"></div>
+
+			<h3>Pending Mirror Payloads</h3>
+			<div id="mirror_pending_chart" style="border: 1px solid #808080; height: 180px; width: 100%; overflow: hidden;"></div>
+
+			<h3>Mirror Processing Performance (Per 250 Payloads)</h3>
+			<div id="mirror_performance_chart" style="border: 1px solid #808080; height: 180px; width: 100%; overflow: hidden;"></div>
+
+			<h3>Server Load Average</h3>
+			<div id="server_load_chart" style="border: 1px solid #808080; height: 180px; width: 100%; overflow: hidden;"></div>
+		</div>
+		<div class="col-md-3">
+			<h4>Devices</h4>
+		
+			<div>
+				<span>
+					<small><strong>Active Devices: </strong></small>
+				</span>
+				<span class="pull-right"><small>{{ active_devices }}</small></span>
+			</div>
+			<div>
+				<span>
+					<small><strong>Inactive Devices: </strong></small>
+				</span>
+				<span class="pull-right"><small>{{ inactive_devices }}</small></span>
+			</div>
+			
+			<h4 style="margin-top: 2em;">Data Performance</h4>
+
+			<div>
+				<span>
+					<small><strong>New Payloads (Last Hour): </strong></small>
+				</span>
+				<span class="pull-right"><small>{{ upload_hour_count }} payloads</small></span>
+			</div>
+
+			<div>
+				<span>
+					<small><strong>New Payloads (Today): </strong></small>
+				</span>
+				<span class="pull-right"><small>{{ upload_count }} payloads</small></span>
+			</div>
+			
+			<div style="margin-top: 1em;">
+				<span>
+					<small><strong>Upload Rate (Last Hour): </strong></small>
+				</span>
+				<span class="pull-right"><small>{{ upload_hour_rate|floatformat:2 }} per second</small></span>
+			</div>
+
+			<div>
+				<span>
+					<small><strong>Upload Rate (Today): </strong></small>
+				</span>
+				<span class="pull-right"><small>{{ upload_rate|floatformat:2 }} per second</small></span>
+			</div>
+
+			<div style="margin-top: 1em;">
+				<span>
+					<small><strong>Ingest Rate (Last Hour): </strong></small>
+				</span>
+				<span class="pull-right"><small>{{ ingest_average_hour|floatformat:2 }} per second</small></span>
+			</div>
+
+			<div>
+				<span>
+					<small><strong>Ingest Rate (Today): </strong></small>
+				</span>
+				<span class="pull-right"><small>{{ ingest_average_day|floatformat:2 }} per second</small></span>
+			</div>
+			
+			{% with skipped_ingest|last as last_ingest_error %}
+				<div>
+					<span>
+						<small><strong>Errors (Total): </strong></small>
+					</span>
+					<span class="pull-right"><small>{{ last_ingest_error.count }} payloads</small></span>
+				</div>
+			{% endwith %}
+
+			<div style="margin-top: 1em;">
+				<span>
+					<small><strong>Mirror Rate (Last Hour): </strong></small>
+				</span>
+				<span class="pull-right"><small>{{ mirror_average_hour|floatformat:2 }} per second</small></span>
+			</div>
+
+			<div>
+				<span>
+					<small><strong>Mirror Rate (Today): </strong></small>
+				</span>
+				<span class="pull-right"><small>{{ mirror_average_day|floatformat:2 }} per second</small></span>
+			</div>
+
+			{% with skipped_mirror|last as last_skipped_mirror %}
+				<div>
+					<span>
+						<small><strong>Skipped (Total): </strong></small>
+					</span>
+					<span class="pull-right"><small>{{ last_skipped_mirror.count }} payloads</small></span>
+				</div>
+			{% endwith %}
+
+			<h4 style="margin-top: 2em;">Pending Ingest Ages</h4>
+			<div id="ingest_age_chart" style="border: 1px solid #808080; height: 180px; width: 100%; overflow: hidden;"></div>
+
+			<h4 style="margin-top: 2em;">Pending Mirror Ages</h4>
+			<div id="mirror_age_chart" style="border: 1px solid #808080; height: 180px; width: 100%; overflow: hidden;"></div>
+
+		</div>
+	</div>
+	<script src="{% static 'vendor/rickshaw.min.js' %}"></script>
+	<script src="{% static 'vendor/moment-with-locales.min.js' %}"></script>
+	<script src="{% static 'vendor/moment-timezone-with-data-2010-2020.js' %}"></script>
+{% endblock %}
+
+{% block 'page_script' %}
+	$(document).ready(function() {		
+		var timeUnit = {
+			'name': '4 hour', 
+			'seconds': 3600 * 4,
+			'formatter': function(d)
+			{
+				var date = new Date(d);
+				
+				var minutes = "" + date.getMinutes();
+				
+				if (minutes.length == 1)
+					minutes = "0" + minutes
+					
+				var am = "am";
+				
+				var hours = date.getHours();
+				
+				if (hours < 12)
+				{
+					if (hours == 0)
+						hours = 12;
+				}
+				else
+				{
+					if (hours > 12)
+						hours -= 12;
+						
+					am = "pm";
+				}
+				
+				return "" + hours + ":" + minutes + " " + am;
+			}
+		};
+
+		var startDate = moment();
+
+		startDate.set('hour', 0);
+		startDate.set('minute', 0);
+		startDate.set('second', 0);
+		startDate.set('millisecond', 0);
+
+		var minSeries = [{ "y": 0, "x": startDate.unix() }, { "y": 0, "x": moment().unix() }];
+
+		var uploadSeries = [];
+		
+		{% for item in payload_uploads %}
+			uploadSeries.push({ "y": {{ item.count }}, "x": moment("{{ item.date }}").unix() });
+		{% endfor %}
+
+		var serverLoadSeries = [];
+		
+		{% for item in server_performance %}
+			serverLoadSeries.push({ "y": {{ item.load_five }}, "x": moment("{{ item.sample_date }}").unix() });
+		{% endfor %}
+
+		var readingIngestSeries = [];
+		
+		{% for item in ingest_performance %}
+			readingIngestSeries.push({ "y": ({{ item.num_extracted }} / ({{ item.extraction_time }} + {{ item.query_time }})), "x": moment("{{ item.sample_date }}").unix() });
+		{% endfor %}
+
+		var readingMirrorSeries = [];
+		var readingMirrorLocalDb = [];
+		var readingMirrorLocalApp = [];
+		var readingMirrorRemoteDb = [];
+		var readingMirrorTimes = [];
+		
+		readingMirrorTimes.push(minSeries[0]);
+		readingMirrorLocalDb.push(minSeries[0]);
+		readingMirrorLocalApp.push(minSeries[0]);
+		readingMirrorRemoteDb.push(minSeries[0]);
+		
+		{% for item in mirror_performance %}
+			readingMirrorSeries.push({ "y": ({{ item.num_mirrored }} / ({{ item.extraction_time }} + {{ item.query_time }})), "x": moment("{{ item.sample_date }}").unix() });
+
+			{% if item.local_db != None %}
+				{% if item.local_app != None %}
+					{% if item.remote_db != None %}
+						if (readingMirrorTimes.length == 1)
+						{
+							readingMirrorRemoteDb.push({ "y": null, "x": (moment("{{ item.sample_date }}").unix() - 1) });
+							readingMirrorLocalDb.push({ "y": null, "x": (moment("{{ item.sample_date }}").unix() - 1) });
+							readingMirrorLocalApp.push({ "y": null, "x": (moment("{{ item.sample_date }}").unix() - 1) });
+							readingMirrorTimes.push({ "y": null, "x": (moment("{{ item.sample_date }}").unix() - 1) });
+						}
+						
+						readingMirrorRemoteDb.push({ "y": {{ item.remote_db }}, "x": moment("{{ item.sample_date }}").unix() });
+						readingMirrorLocalDb.push({ "y": {{ item.local_db }}, "x": moment("{{ item.sample_date }}").unix() });
+						readingMirrorLocalApp.push({ "y": {{ item.local_app }}, "x": moment("{{ item.sample_date }}").unix() });
+						readingMirrorTimes.push({ "y": null, "x": moment("{{ item.sample_date }}").unix() });
+					{% endif %}
+				{% endif %}
+			{% endif %}
+		{% endfor %}
+
+		readingMirrorTimes.push(minSeries[1]);
+		readingMirrorLocalDb.push(minSeries[1]);
+		readingMirrorLocalApp.push(minSeries[1]);
+		readingMirrorRemoteDb.push(minSeries[1]);
+
+//		readingMirrorLocalDb[readingMirrorLocalDb.length - 1]["y"] = readingMirrorLocalDb[readingMirrorLocalDb.length - 2]["y"];
+//		readingMirrorLocalApp[readingMirrorLocalApp.length - 1]["y"] = readingMirrorLocalApp[readingMirrorLocalApp.length - 2]["y"];
+//		readingMirrorRemoteDb[readingMirrorRemoteDb.length - 1]["y"] = readingMirrorRemoteDb[readingMirrorRemoteDb.length - 2]["y"];
+		
+		var pendingIngestSeries = [];
+		
+		{% for item in pending_ingest %}
+			pendingIngestSeries.push({ "y": {{ item.count }}, "x": moment("{{ item.sample_date }}").unix() });
+		{% endfor %}
+
+		var pendingMirrorSeries = [];
+		
+		{% for item in pending_mirror %}
+			pendingMirrorSeries.push({ "y": {{ item.count }}, "x": moment("{{ item.sample_date }}").unix() });
+		{% endfor %}
+		
+		var graph = new Rickshaw.Graph( {
+			element: document.getElementById("ingest_readings_chart"),
+			height: 180,
+			width: $("div#ingest_readings_chart").width(),
+			renderer: 'line',
+			interpolation: 'linear',
+			series: [
+				{
+					color: "#1B5E20",
+					data: readingIngestSeries,
+					name: 'Payload Ingest Rate'
+				},
+				{
+					color: "#ffffff",
+					data: minSeries,
+					name: ""
+				}
+			],
+			padding: { top: 0.25, bottom: 0.25 }
+		});
+		
+		var x_axis = new Rickshaw.Graph.Axis.Time( { graph: graph, timeUnit: timeUnit, timeFixture: new Rickshaw.Fixtures.Time.Local() } );
+
+		var hoverDetail = new Rickshaw.Graph.HoverDetail( {
+			graph: graph,
+			xFormatter: function(x)
+			{ 
+				return moment(x * 1000).format('h:mm a'); 
+			},
+			yFormatter: function(y) { return y.toFixed(2) + " payloads per second" }
+		});
+		
+		graph.render();
+
+		graph = new Rickshaw.Graph( {
+			element: document.getElementById("mirror_readings_chart"),
+			height: 180,
+			width: $("div#mirror_readings_chart").width(),
+			renderer: 'line',
+			interpolation: 'linear',
+			series: [
+				{
+					color: "#1B5E20",
+					data: readingMirrorSeries,
+					name: 'Payload Mirror Rate'
+				},
+				{
+					color: "#ffffff",
+					data: minSeries,
+					name: ""
+				}
+			],
+			padding: { top: 0.25, bottom: 0.25 }
+		});
+		
+		x_axis = new Rickshaw.Graph.Axis.Time( { graph: graph, timeUnit: timeUnit } );
+
+		hoverDetail = new Rickshaw.Graph.HoverDetail( {
+			graph: graph,
+			xFormatter: function(x)
+			{ 
+				return moment(x * 1000).tz("{{ timezone }}").format('h:mm a'); 
+			},
+			yFormatter: function(y) { return y.toFixed(2) + " payloads per second" }
+		});
+		
+		graph.render();
+		
+
+		graph = new Rickshaw.Graph( {
+			element: document.getElementById("ingest_pending_chart"),
+			height: 180,
+			width: $("div#ingest_pending_chart").width(),
+			renderer: 'line',
+			interpolation: 'linear',
+			series: [
+				{
+					color: "#E65100",
+					data: pendingIngestSeries,
+					name: 'Pending Ingest Payloads'
+				},
+				{
+					color: "#ffffff",
+					data: minSeries,
+					name: ""
+				}
+			],
+			padding: { top: 0.25, bottom: 0.25 }
+		});
+		
+		x_axis = new Rickshaw.Graph.Axis.Time( { graph: graph, timeUnit: timeUnit } );
+
+		hoverDetail = new Rickshaw.Graph.HoverDetail( {
+			graph: graph,
+			xFormatter: function(x)
+			{ 
+				return moment(x * 1000).tz("{{ timezone }}").format('h:mm a'); 
+			},
+			yFormatter: function(y) { return y + " payloads" }
+		});
+		
+		graph.render();
+
+		graph = new Rickshaw.Graph( {
+			element: document.getElementById("mirror_pending_chart"),
+			height: 180,
+			width: $("div#mirror_pending_chart").width(),
+			renderer: 'line',
+			interpolation: 'linear',
+			series: [
+				{
+					color: "#E65100",
+					data: pendingMirrorSeries,
+					name: 'Pending Mirror Payloads'
+				},
+				{
+					color: "#ffffff",
+					data: minSeries,
+					name: ""
+				}
+			],
+			padding: { top: 0.25, bottom: 0.25 }
+		});
+		
+		x_axis = new Rickshaw.Graph.Axis.Time( { graph: graph, timeUnit: timeUnit } );
+
+		hoverDetail = new Rickshaw.Graph.HoverDetail( {
+			graph: graph,
+			xFormatter: function(x)
+			{ 
+				return moment(x * 1000).tz("{{ timezone }}").format('h:mm a'); 
+			},
+			yFormatter: function(y) { return y + " payloads" }
+		});
+		
+		graph.render();
+
+		graph = new Rickshaw.Graph( {
+			element: document.getElementById("server_load_chart"),
+			height: 180,
+			width: $("div#server_load_chart").width(),
+			renderer: 'line',
+			interpolation: 'linear',
+			series: [
+				{
+					color: "#E65100",
+					data: serverLoadSeries,
+					name: 'Load Average'
+				},
+				{
+					color: "#ffffff",
+					data: minSeries,
+					name: ""
+				}
+			],
+			padding: { top: 0.25, bottom: 0.25 }
+		});
+		
+		x_axis = new Rickshaw.Graph.Axis.Time( { graph: graph, timeUnit: timeUnit } );
+
+		hoverDetail = new Rickshaw.Graph.HoverDetail( {
+			graph: graph,
+			xFormatter: function(x)
+			{ 
+				return moment(x * 1000).tz("{{ timezone }}").format('h:mm a'); 
+			},
+			yFormatter: function(y) { return "" + y.toFixed(2) }
+		});
+		
+		graph.render();
+
+		graph = new Rickshaw.Graph( {
+			element: document.getElementById("payload_uploads_chart"),
+			height: 180,
+			width: $("div#server_load_chart").width(),
+			renderer: 'line',
+			interpolation: 'linear',
+			series: [
+				{
+					color: "#E65100",
+					data: uploadSeries,
+					name: 'Payloads Added'
+				},
+				{
+					color: "#ffffff",
+					data: minSeries,
+					name: ""
+				}
+			],
+			padding: { top: 0.25, bottom: 0.25 }
+		});
+		
+		x_axis = new Rickshaw.Graph.Axis.Time( { graph: graph, timeUnit: timeUnit } );
+
+		hoverDetail = new Rickshaw.Graph.HoverDetail( {
+			graph: graph,
+			xFormatter: function(x)
+			{ 
+				return moment(x * 1000).tz("{{ timezone }}").format('h:mm a'); 
+			},
+			yFormatter: function(y) { return "" + y }
+		});
+
+		graph.render();
+
+		graph = new Rickshaw.Graph( {
+			element: document.getElementById("mirror_performance_chart"),
+			height: 180,
+			width: $("div#mirror_performance_chart").width(),
+//			renderer: 'line',
+			interpolation: 'linear',
+			series: [
+				{
+					color: "#ffffff",
+					data: readingMirrorTimes,
+					name: ""
+				},
+				{
+					color: "#616161",
+					data: readingMirrorLocalApp,
+					name: 'Local App Server Time'
+				},
+				{
+					color: "#5D4037",
+					data: readingMirrorLocalDb,
+					name: 'Local Database Time'
+				},
+				{
+					color: "#1976D2",
+					data: readingMirrorRemoteDb,
+					name: 'Remote Database Time'
+				}
+			],
+			padding: { top: 0.25, bottom: 0.25 }
+		});
+		
+		x_axis = new Rickshaw.Graph.Axis.Time( { graph: graph, timeUnit: timeUnit } );
+
+		hoverDetail = new Rickshaw.Graph.HoverDetail( {
+			graph: graph,
+			xFormatter: function(x)
+			{ 
+				return moment(x * 1000).tz("{{ timezone }}").format('h:mm a'); 
+			},
+			yFormatter: function(y) { if (y == null) return null; return y.toFixed(2) + " seconds" }
+		});
+		
+		graph.render();
+		
+		{% with pending_mirror_ages|last as last_mirror_age %}
+			var mirrorAgeSeries = [];
+			
+			mirrorAgeSeries.push({ "x": 0, "y": {{ last_mirror_age.less_hour_count }} });
+			mirrorAgeSeries.push({ "x": 1, "y": {{ last_mirror_age.hour_count }} });
+			mirrorAgeSeries.push({ "x": 2, "y": {{ last_mirror_age.quarter_day_count }} });
+			mirrorAgeSeries.push({ "x": 3, "y": {{ last_mirror_age.half_day_count }} });
+			mirrorAgeSeries.push({ "x": 4, "y": {{ last_mirror_age.day_count }} });
+			mirrorAgeSeries.push({ "x": 5, "y": {{ last_mirror_age.week_count }} });
+
+			graph = new Rickshaw.Graph( {
+				element: document.getElementById("mirror_age_chart"),
+				height: 180,
+				width: $("div#mirror_age_chart").width(),
+				renderer: 'bar',
+				series: [{
+					color: "#9E9E9E",
+					data: mirrorAgeSeries,
+					name: "Pending Mirror Ages"
+				}],
+				padding: { top: 0.25, bottom: 0.25 }
+			});
+		
+			var hoverDetail = new Rickshaw.Graph.HoverDetail( {
+				graph: graph,
+				xFormatter: function(x)
+				{ 
+					if (x == 0)
+						return "Less than 1 hour";
+					else if (x == 1)
+						return "1 to 6 hours";
+					else if (x == 2)
+						return "6 to 12 hours";
+					else if (x == 3)
+						return "12 to 24 hours";
+					else if (x == 4)
+						return "1 to 7 days";
+					else if (x == 5)
+						return "More than 7 days";
+						
+					return "--" + x + "--";
+				},
+				yFormatter: function(y) { return y + " payloads" }
+			});
+		
+			graph.render();
+		{% endwith %}
+
+		{% with pending_ingest_ages|last as last_ingest_age %}
+			var ingestAgeSeries = [];
+			
+			ingestAgeSeries.push({ "x": 0, "y": {{ last_ingest_age.less_hour_count }} });
+			ingestAgeSeries.push({ "x": 1, "y": {{ last_ingest_age.hour_count }} });
+			ingestAgeSeries.push({ "x": 2, "y": {{ last_ingest_age.quarter_day_count }} });
+			ingestAgeSeries.push({ "x": 3, "y": {{ last_ingest_age.half_day_count }} });
+			ingestAgeSeries.push({ "x": 4, "y": {{ last_ingest_age.day_count }} });
+			ingestAgeSeries.push({ "x": 5, "y": {{ last_ingest_age.week_count }} });
+
+			graph = new Rickshaw.Graph( {
+				element: document.getElementById("ingest_age_chart"),
+				height: 180,
+				width: $("div#ingest_age_chart").width(),
+				renderer: 'bar',
+				series: [{
+					color: "#9E9E9E",
+					data: ingestAgeSeries,
+					name: "Pending Ingest Ages"
+				}],
+				padding: { top: 0.25, bottom: 0.25 }
+			});
+		
+			var hoverDetail = new Rickshaw.Graph.HoverDetail( {
+				graph: graph,
+				xFormatter: function(x)
+				{ 
+					if (x == 0)
+						return "Less than 1 hour";
+					else if (x == 1)
+						return "1 to 6 hours";
+					else if (x == 2)
+						return "6 to 12 hours";
+					else if (x == 3)
+						return "12 to 24 hours";
+					else if (x == 4)
+						return "1 to 7 days";
+					else if (x == 5)
+						return "More than 7 days";
+
+					return "--" + x + "--";
+				},
+				yFormatter: function(y) { return y + " payloads" }
+			});
+		
+			graph.render();
+		{% endwith %}
+
+	});
+{% endblock %}

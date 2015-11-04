@@ -30,16 +30,17 @@ class Command(BaseCommand):
                 devices = {}
             
                 for alert in alerts:
-                    device = PurpleRobotDevice.objects.get(hash_key=alert.user_id)
-                
-                    device_alerts = []
-                
-                    if device.device_id in devices:
-                        device_alerts = devices[device.device_id]
-                    else:
-                        devices[device.device_id] = device_alerts
+                    device = PurpleRobotDevice.objects.filter(hash_key=alert.user_id).first()
                     
-                    device_alerts.append([alert, device])
+                    if device != None:
+                        device_alerts = []
+                
+                        if device.device_id in devices:
+                            device_alerts = devices[device.device_id]
+                        else:
+                            devices[device.device_id] = device_alerts
+                    
+                        device_alerts.append([alert, device])
                 
                 c['devices'] = devices
 

@@ -193,6 +193,10 @@ class FrequencyNode(template.Node):
             return frequency
 
         value = "{:10.3f}".format(frequency) + " Hz"
+
+        if frequency < 1.0:
+            value = "{:10.3f}".format(frequency * 1000) + " mHz"
+
         tooltip = "{:10.3f}".format(frequency) + " samples per second"
         
         if frequency < 1.0:

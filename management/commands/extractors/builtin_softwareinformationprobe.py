@@ -52,19 +52,19 @@ def app_point_table_exists(conn):
     
     return activities_table_exists
 
-def insert(connection_str, user_id, reading):
+def insert(connection_str, user_id, reading, check_exists=True):
 #    print(json.dumps(reading, indent=2))
     
     conn = psycopg2.connect(connection_str)
     cursor = conn.cursor()
     
-    if probe_table_exists(conn) == False:
+    if check_exists and probe_table_exists(conn) == False:
         cursor.execute(CREATE_PROBE_TABLE_SQL)
         cursor.execute(CREATE_PROBE_USER_ID_INDEX)
         cursor.execute(CREATE_PROBE_GUID_INDEX)
         cursor.execute(CREATE_PROBE_UTC_LOGGED_INDEX)
     
-    if app_point_table_exists(conn) == False:
+    if check_exists and app_point_table_exists(conn) == False:
         cursor.execute(CREATE_APP_TABLE_SQL)
         cursor.execute(CREATE_APP_USER_ID_INDEX)
         cursor.execute(CREATE_APP_READING_ID_INDEX)

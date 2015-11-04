@@ -96,7 +96,7 @@ def unmark_testing(modeladmin, request, queryset):
 unmark_testing.description = 'Mark as regular device'
 
 class PurpleRobotDeviceAdmin(admin.ModelAdmin):
-    list_display = ('device_id', 'name', 'configuration', 'config_last_fetched', 'config_last_user_agent', 'hash_key', 'mute_alerts', 'test_device', 'first_reading_timestamp')
+    list_display = ('device_id', 'name', 'device_group', 'configuration', 'config_last_fetched', 'config_last_user_agent', 'hash_key', 'mute_alerts', 'test_device',)
     list_filter = ['device_group', 'test_device', 'configuration', 'mute_alerts']
     
     actions = [ clear_performance_metadata, mute_alerts, unmute_alerts, mark_testing, unmark_testing ]

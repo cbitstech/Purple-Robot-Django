@@ -32,33 +32,44 @@ class Command(BaseCommand):
 
         touch('/tmp/size_readings.lock')
         
-        readings = PurpleRobotReading.objects.filter(size=0).order_by('-logged')[:2000]
+        readings = list(PurpleRobotReading.objects.filter(size=0)[:1000])
+        count = PurpleRobotReading.objects.filter(size=0).count()
+        
+        while count > 0:
+            print('READINGS: ' + str(count) + ' -- ' + str(datetime.datetime.now()))
+            
+            for reading in readings:
+                device = None # PurpleRobotDevice.objects.filter(hash_key=reading.user_id).first()
 
-        for reading in readings:
-            reading.size = len(reading.payload)
+                reading.size = len(reading.payload)
+    
+                if reading.attachment != None:
+                    try:
+                        reading.size += reading.attachment.size
+                    except ValueError:
+                        pass # No attachment...
+    
+                reading.save()
             
-            if reading.attachment != None:
-                try:
-                    reading.size += reading.attachment.size
-                except ValueError:
-                    pass # No attachment...
+                if device != None:
+                    metadata = json.loads(device.performance_metadata)
             
-            reading.save()
+                    if ('total_readings_size' in metadata) == False:
+                        total_size = PurpleRobotReading.objects.filter(user_id=device.hash_key).aggregate(Sum('size'))
+                        metadata['total_readings_size'] = total_size['size__sum']
+                
+                    if ('total_readings_size' in metadata) == False or metadata['total_readings_size'] == None:
+                        metadata['total_readings_size'] = 0
+
+                    metadata['total_readings_size'] += reading.size
             
+                    device.performance_metadata = json.dumps(metadata, indent=2)
+                    device.save()
+                
             touch('/tmp/size_readings.lock')
 
-            
-        for device in PurpleRobotDevice.objects.all():
-            total_size = PurpleRobotReading.objects.filter(user_id=device.hash_key).aggregate(Sum('size'))
-            
-            metadata = json.loads(device.performance_metadata)
-            
-            metadata['total_readings_size'] = total_size['size__sum']
-            
-            device.performance_metadata = json.dumps(metadata, indent=2)
-            
-            device.save()
-
-            touch('/tmp/size_readings.lock')
+            count -= len(readings)
+            readings = list(PurpleRobotReading.objects.filter(size=0)[:1000])                
+            # count = PurpleRobotReading.objects.filter(size=0).count()
 
         os.remove('/tmp/size_readings.lock')
