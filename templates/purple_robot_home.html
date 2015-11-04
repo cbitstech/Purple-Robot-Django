@@ -28,6 +28,11 @@
 		{% if unattached_devices.count > 0 %}
 			<h3>Unaffiliated Devices</h3>
 			{% pr_group_table '' %}
+			<div class="pull-right" style="margin-top: -20px;">
+				<small>
+					<a href="#" id="link_add_group">Add New Group</a>
+				</small>
+			</div>
 		{% endif %}
 	</div>
 	<div class="modal fade" id="modal_add_group" tabindex="-1" role="dialog" aria-labelledby="model_add_group" aria-hidden="true">

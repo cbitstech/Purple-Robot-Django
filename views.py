@@ -3,6 +3,7 @@ import hashlib
 import datetime
 
 from django.contrib.admin.views.decorators import staff_member_required
+from django.conf import settings
 from django.core.context_processors import csrf
 from django.core.urlresolvers import reverse
 from django.http import HttpResponse, UnreadablePostError
@@ -250,7 +251,17 @@ def pr_device_probe(request, device_id, probe_name):
     c['test'] = PurpleRobotTest.objects.filter(user_id=c['device'].user_hash, probe=probe_name).first()
     c['last_readings'] = PurpleRobotReading.objects.filter(user_id=c['device'].user_hash, probe=probe_name).order_by('-logged')[:500]
     c['visualization'] = c['device'].visualization_for_probe(probe_name)
+    
+    try:
+        c['pr_show_notes'] = settings.PURPLE_ROBOT_SHOW_NOTES
+    except KeyError:
+        c['pr_show_notes'] = True
 
+    try:
+        c['pr_show_device_id_header'] = settings.PURPLE_ROBOT_SHOW_DEVICE_ID_HEADER
+    except KeyError:
+        c['pr_show_device_id_header'] = True
+    
     return render_to_response('purple_robot_device_probe.html', c)
 
 @staff_member_required

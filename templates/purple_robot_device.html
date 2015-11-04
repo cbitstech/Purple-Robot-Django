@@ -4,9 +4,11 @@
 {% block 'title' %}{{ device.name }}{% endblock %}
 {% block 'content' %}
 	{% pr_device_custom_console %}
-	<div class="col-md-12">
-		<h1>{{ device.name }}</h1>
-	</div>
+	{% if pr_show_device_id_header %}
+		<div class="col-md-12">
+			<h1>{{ device.name }}</h1>
+		</div>
+	{% endif %}
 	<div class="col-md-9">
 		{% with sanity_messages=device.sanity_messages %}
 			{% if sanity_messages == None %}
@@ -266,86 +268,88 @@
 			<span class="pull-right"><small>{% pr_data_size device.total_readings_size %}</small></span>
 		</div>
 		
-		<h4 style="margin-top: 2em;">Add New Note</h4>
+		{% if pr_show_notes %}
+			<h4 style="margin-top: 2em;">Add New Note</h4>
 		
-		<form id="add_note">
-			<textarea placeholder="Enter new note&#8230;" id="note_contents" class="form-control" style="height: 160px; width: 100%;"></textarea>
-			<button class="btn btn-default" type="submit" id="add_note" style="margin-top: 10px;">Add Note</button>
-			<input type="hidden" id="device_id" name="device_id" value="{{ device.device_id }}" />
-		</form>
+			<form id="add_note">
+				<textarea placeholder="Enter new note&#8230;" id="note_contents" class="form-control" style="height: 160px; width: 100%;"></textarea>
+				<button class="btn btn-default" type="submit" id="add_note" style="margin-top: 10px;">Add Note</button>
+				<input type="hidden" id="device_id" name="device_id" value="{{ device.device_id }}" />
+			</form>
 		
-		<script>
-			$(document).ready(function()
-			{
-				$.ajaxSetup({ 
-					 beforeSend: function(xhr, settings) {
-						 function getCookie(name) {
-							 var cookieValue = null;
-							 if (document.cookie && document.cookie != '') {
-								 var cookies = document.cookie.split(';');
-								 for (var i = 0; i < cookies.length; i++) {
-									 var cookie = jQuery.trim(cookies[i]);
-									 // Does this cookie string begin with the name we want?
-									 if (cookie.substring(0, name.length + 1) == (name + '=')) {
-										 cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-										 break;
+			<script>
+				$(document).ready(function()
+				{
+					$.ajaxSetup({ 
+						 beforeSend: function(xhr, settings) {
+							 function getCookie(name) {
+								 var cookieValue = null;
+								 if (document.cookie && document.cookie != '') {
+									 var cookies = document.cookie.split(';');
+									 for (var i = 0; i < cookies.length; i++) {
+										 var cookie = jQuery.trim(cookies[i]);
+										 // Does this cookie string begin with the name we want?
+										 if (cookie.substring(0, name.length + 1) == (name + '=')) {
+											 cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+											 break;
+										 }
 									 }
 								 }
+								 return cookieValue;
 							 }
-							 return cookieValue;
-						 }
-						 if (!(/^http:.*/.test(settings.url) || /^https:.*/.test(settings.url))) {
-							 // Only send the token to relative URLs i.e. locally.
-							 xhr.setRequestHeader("X-CSRFToken", getCookie('csrftoken'));
-						 }
-					 } 
-				});
+							 if (!(/^http:.*/.test(settings.url) || /^https:.*/.test(settings.url))) {
+								 // Only send the token to relative URLs i.e. locally.
+								 xhr.setRequestHeader("X-CSRFToken", getCookie('csrftoken'));
+							 }
+						 } 
+					});
 
-				$("#add_note").submit(function(event)
-				{
-					event.preventDefault();
-			
-					data = {}
-					data['device_id'] = $("input#device_id").val();
-					data['note_contents'] = $("textarea#note_contents").val();
-			
-					$.post("{% url 'pr_add_note' %}", data, function(data)
+					$("#add_note").submit(function(event)
 					{
-						alert(data["message"]);
+						event.preventDefault();
 			
-						if (data["result"] == "success")
-							location.reload();
+						data = {}
+						data['device_id'] = $("input#device_id").val();
+						data['note_contents'] = $("textarea#note_contents").val();
+			
+						$.post("{% url 'pr_add_note' %}", data, function(data)
+						{
+							alert(data["message"]);
+			
+							if (data["result"] == "success")
+								location.reload();
+						});
+					});
+				
+					$("div.pr_note").hide();
+				
+					$("a.pr_note_link").click(function(event)
+					{
+						event.preventDefault();
+					
+						var contentId = $(event.target).attr("id").replace("note_", "note_content_");
+					
+						if ($("#" + contentId).is(":visible"))
+							$("#" + contentId).hide();
+						else
+							$("#" + contentId).show();
 					});
 				});
-				
-				$("div.pr_note").hide();
-				
-				$("a.pr_note_link").click(function(event)
-				{
-					event.preventDefault();
-					
-					var contentId = $(event.target).attr("id").replace("note_", "note_content_");
-					
-					if ($("#" + contentId).is(":visible"))
-						$("#" + contentId).hide();
-					else
-						$("#" + contentId).show();
-				});
-			});
-		</script>
+			</script>
 		
-		<h4 style="margin-top: 2em;">Previous Notes</h4>
-		{% for note in device.notes.all %}
-			<div {% if forloop.counter0 != 0 %}style="margin-top: 0.5em;"{% endif %}>
-				<a href="#" id="note_{{ note.pk }}" class="pr_note_link">{{ note.added }}</a><br />
-				<div id="note_content_{{ note.pk }}" class="pr_note well" style="padding-top: 10px; padding-left: 10px; padding-right: 10px; padding-bottom: 0px; margin-top: 0.5em;">{{ note.note|linebreaks }}</div>
-			</div>
-		{% empty %}
-			<em>No notes for this device&#8230;</em>
-		{% endfor %}
+			<h4 style="margin-top: 2em;">Previous Notes</h4>
+			{% for note in device.notes.all %}
+				<div {% if forloop.counter0 != 0 %}style="margin-top: 0.5em;"{% endif %}>
+					<a href="#" id="note_{{ note.pk }}" class="pr_note_link">{{ note.added }}</a><br />
+					<div id="note_content_{{ note.pk }}" class="pr_note well" style="padding-top: 10px; padding-left: 10px; padding-right: 10px; padding-bottom: 0px; margin-top: 0.5em;">{{ note.note|linebreaks }}</div>
+				</div>
+			{% empty %}
+				<em>No notes for this device&#8230;</em>
+			{% endfor %}
+		{% endif %}
 
-		<h4 style="margin-top: 2em;">Basic Settings</h4>
-		[ Common settings ]<br />
+		<!-- <h4 style="margin-top: 2em;">Basic Settings</h4>
+		[ Common settings ]<br /> -->
 
 		<h4 style="margin-top: 2em;">Installed Apps</h4>
 			<div class="well" style="height: 600px; overflow-y: auto; overflow-y: none; padding: 10px;">

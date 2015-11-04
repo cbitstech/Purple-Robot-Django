@@ -28,6 +28,22 @@ class CustomSidebarNode(template.Node):
         
         return render_to_string('tag_pr_device_custom_sidebar_unknown.html')
 
+@register.tag(name="pr_device_custom_navbar")
+def pr_device_custom_navbar(parser, token):
+    return CustomNavbarNode()
+
+class CustomNavbarNode(template.Node):
+    def __init__(self):
+        pass
+
+    def render(self, context):
+        try:
+            return settings.PURPLE_ROBOT_CUSTOM_NAVBAR(context)
+        except AttributeError:
+            pass
+        
+        return render_to_string('tag_pr_device_custom_navbar_default.html')
+
 
 @register.tag(name="pr_home_custom_console")
 def tag_pr_home_custom_console(parser, token):
@@ -168,6 +184,39 @@ class DateAgoNode(template.Node):
         context['date'] = date_obj
         
         return render_to_string('tag_pr_date_ago.html', context)
+
+@register.tag(name="pr_human_duration")
+def tag_pr_human_duration(parser, token):
+    try:
+        tag_name, seconds_obj = token.split_contents()
+    except ValueError:
+        raise template.TemplateSyntaxError("%r tag requires a single argument" % token.contents.split()[0])
+
+    return HumanDurationNode(seconds_obj)
+
+class HumanDurationNode(template.Node):
+    def __init__(self, seconds_obj):
+        self.seconds_obj = template.Variable(seconds_obj)
+
+    def render(self, context):
+        seconds_obj = self.seconds_obj.resolve(context)
+        
+        if seconds_obj == None:
+            return ''
+            
+        ago_str = str(seconds_obj) + 's'
+        
+        if seconds_obj > (24.0 * 60 * 60):
+            ago_str = str(seconds_obj / (24.0 * 60 * 60)) + 'd'
+        elif seconds_obj > (60.0 * 60):
+            ago_str = str(seconds_obj / (60.0 * 60)) + 'h'
+        elif seconds_obj > 60.0:
+            ago_str = str(seconds_obj / 60.0) + 'm'
+        
+        context['human_duration'] = ago_str
+        context['seconds'] = seconds_obj
+        
+        return render_to_string('tag_pr_human_duration.html', context)
         
 
 @register.tag(name="pr_frequency")
