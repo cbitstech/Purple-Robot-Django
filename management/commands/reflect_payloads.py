@@ -37,7 +37,7 @@ class Command(BaseCommand):
             t = os.path.getmtime('/tmp/reflected_payload.lock')
             created = datetime.datetime.fromtimestamp(t)
             
-            if (datetime.datetime.now() - created).total_seconds() > 300:
+            if (datetime.datetime.now() - created).total_seconds() > 60 * 60:
                 print('reflect_payloads: Stale lock - removing...')
                 os.remove('/tmp/reflected_payload.lock')
             else:
@@ -49,16 +49,22 @@ class Command(BaseCommand):
 
         requests.packages.urllib3.disable_warnings()
         
-        reflected_payloads = []
-        
         for config in settings.PR_REDIRECT_ENDPOINT_MAP:
-            payloads = PurpleRobotPayload.objects.filter(user_id=config['hash']).exclude(process_tags__contains=tag)[:50]
-        
-            if payloads.count() > 0:
+            payloads = list(PurpleRobotPayload.objects.filter(user_id=config['hash']).exclude(process_tags__contains=tag)[:50])            
+            
+            while len(payloads) > 0:
+                reflected_payloads = []
+                
                 if PRINT_PROGRESS:
-                    print('')
+                    print('COUNT: ' + str(len(payloads)))
+                    
+                index = 0
             
                 for pr_payload in payloads:
+                    index += 1
+                    if PRINT_PROGRESS:
+                        print(' PAYLOAD: ' + str(index) + ' -- ' + str(pr_payload.pk))
+                    
                     payload = {}
                     payload['Payload'] = pr_payload.payload
                     payload['Operation'] = 'SubmitProbes'
@@ -107,20 +113,23 @@ class Command(BaseCommand):
                         
                     touch('/tmp/reflected_payload.lock')
 
-        for pk in reflected_payloads:
-            pr_payload = PurpleRobotPayload.objects.get(pk=pk)
-            
-            tags = pr_payload.process_tags
+                for pk in reflected_payloads:
+                    pr_payload = PurpleRobotPayload.objects.get(pk=pk)
+        
+                    tags = pr_payload.process_tags
 
-            if tags is None or tags.find(tag) == -1:
-                if tags is None or len(tags) == 0:
-                    tags = tag
-                else:
-                    tags += ' ' + tag
-    
-                pr_payload.process_tags = tags
+                    if tags is None or tags.find(tag) == -1:
+                        if tags is None or len(tags) == 0:
+                            tags = tag
+                        else:
+                            tags += ' ' + tag
 
-                pr_payload.save()
+                        pr_payload.process_tags = tags
+
+                        pr_payload.save()
+                    
+                payloads = list(PurpleRobotPayload.objects.filter(user_id=config['hash']).exclude(process_tags__contains=tag)[:50])
+
                 
         os.remove('/tmp/reflected_payload.lock')
         
