@@ -126,49 +126,49 @@ def elevation_table_exists(conn):
     return exists
 
 
-def insert(connection_str, user_id, reading):
+def insert(connection_str, user_id, reading, check_exists=True):
 #    print(json.dumps(reading, indent=2))
     
     conn = psycopg2.connect(connection_str)
     cursor = conn.cursor()
     
-    if probe_table_exists(conn) == False:
+    if check_exists and probe_table_exists(conn) == False:
         cursor.execute(CREATE_PROBE_TABLE_SQL)
         cursor.execute(CREATE_PROBE_USER_ID_INDEX)
         cursor.execute(CREATE_PROBE_GUID_INDEX)
         cursor.execute(CREATE_PROBE_UTC_LOGGED_INDEX)
     
-    if heart_table_exists(conn) == False:
+    if check_exists and heart_table_exists(conn) == False:
         cursor.execute(CREATE_HEART_TABLE_SQL)
         cursor.execute(CREATE_HEART_USER_ID_INDEX)
         cursor.execute(CREATE_HEART_ID_INDEX)
         cursor.execute(CREATE_HEART_UTC_LOGGED_INDEX)
     
-    if distance_table_exists(conn) == False:
+    if check_exists and distance_table_exists(conn) == False:
         cursor.execute(CREATE_DISTANCE_TABLE_SQL)
         cursor.execute(CREATE_DISTANCE_USER_ID_INDEX)
         cursor.execute(CREATE_DISTANCE_ID_INDEX)
         cursor.execute(CREATE_DISTANCE_UTC_LOGGED_INDEX)
     
-    if calories_table_exists(conn) == False:
+    if check_exists and calories_table_exists(conn) == False:
         cursor.execute(CREATE_CALORIES_TABLE_SQL)
         cursor.execute(CREATE_CALORIES_USER_ID_INDEX)
         cursor.execute(CREATE_CALORIES_ID_INDEX)
         cursor.execute(CREATE_CALORIES_UTC_LOGGED_INDEX)
     
-    if steps_table_exists(conn) == False:
+    if check_exists and steps_table_exists(conn) == False:
         cursor.execute(CREATE_STEPS_TABLE_SQL)
         cursor.execute(CREATE_STEPS_USER_ID_INDEX)
         cursor.execute(CREATE_STEPS_ID_INDEX)
         cursor.execute(CREATE_STEPS_UTC_LOGGED_INDEX)
     
-    if floors_table_exists(conn) == False:
+    if check_exists and floors_table_exists(conn) == False:
         cursor.execute(CREATE_FLOORS_TABLE_SQL)
         cursor.execute(CREATE_FLOORS_USER_ID_INDEX)
         cursor.execute(CREATE_FLOORS_ID_INDEX)
         cursor.execute(CREATE_FLOORS_UTC_LOGGED_INDEX)
     
-    if elevation_table_exists(conn) == False:
+    if check_exists and elevation_table_exists(conn) == False:
         cursor.execute(CREATE_ELEVATION_TABLE_SQL)
         cursor.execute(CREATE_ELEVATION_USER_ID_INDEX)
         cursor.execute(CREATE_ELEVATION_ID_INDEX)

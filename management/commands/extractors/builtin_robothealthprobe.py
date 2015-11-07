@@ -102,25 +102,25 @@ def trigger_table_exists(conn):
     
     return exists
 
-def insert(connection_str, user_id, reading):
+def insert(connection_str, user_id, reading, check_exists=True):
 #     print(json.dumps(reading, indent=2))
     
     conn = psycopg2.connect(connection_str)
     cursor = conn.cursor()
     
-    if probe_table_exists(conn) == False:
+    if check_exists and probe_table_exists(conn) == False:
         cursor.execute(CREATE_PROBE_TABLE_SQL)
         cursor.execute(CREATE_PROBE_USER_ID_INDEX)
         cursor.execute(CREATE_PROBE_GUID_INDEX)
         cursor.execute(CREATE_PROBE_UTC_LOGGED_INDEX)
     
-    if warning_table_exists(conn) == False:
+    if check_exists and warning_table_exists(conn) == False:
         cursor.execute(CREATE_WARNING_TABLE_SQL)
         cursor.execute(CREATE_WARNING_USER_ID_INDEX)
         cursor.execute(CREATE_WARNING_READING_ID_INDEX)
         cursor.execute(CREATE_WARNING_UTC_LOGGED_INDEX)
 
-    if trigger_table_exists(conn) == False:
+    if check_exists and trigger_table_exists(conn) == False:
         cursor.execute(CREATE_TRIGGER_TABLE_SQL)
         cursor.execute(CREATE_TRIGGER_USER_ID_INDEX)
         cursor.execute(CREATE_TRIGGER_READING_ID_INDEX)

@@ -5,9 +5,13 @@ import os
 
 from django.conf import settings
 from django.core.management.base import BaseCommand
+from django.utils import timezone
 from django.utils.text import slugify
 
 from purple_robot_app.models import PurpleRobotReading, PurpleRobotPayload
+from purple_robot_app.performance import append_performance_sample
+
+EXTRACTORS = {}
 
 def my_slugify(str_obj):
     return slugify(str_obj.replace('.', ' ')).replace('-', '_')
@@ -29,7 +33,7 @@ class Command(BaseCommand):
             t = os.path.getmtime('/tmp/extract_into_database.lock')
             created = datetime.datetime.fromtimestamp(t)
             
-            if (datetime.datetime.now() - created).total_seconds() > 60 * 60 * 3:
+            if (datetime.datetime.now() - created).total_seconds() > 60 * 60 * 8:
                 print('extract_into_database: Stale lock - removing...')
                 os.remove('/tmp/extract_into_database.lock')
             else:
@@ -40,15 +44,33 @@ class Command(BaseCommand):
         tag = 'extracted_into_database'
         skip_tag = 'extracted_into_database_skip'
         
-        payloads = PurpleRobotPayload.objects.exclude(process_tags__contains=tag).order_by('-added')[:100]
+        start = timezone.now()
+        payloads = list(PurpleRobotPayload.objects.exclude(process_tags__contains=tag).exclude(process_tags__contains=skip_tag).order_by('-added')[:250])
+        end = timezone.now()
+
+        query_time = (end - start).total_seconds()
+
+        EXTRACTOR_TIMES = {}
+        EXTRACTOR_COUNTS = {}
+
+        local_db = 0.0
+        remote_db = 0.0
+        local_app = 0.0
         
-        index = 0
-        
-        while payloads.count() > 0 and index < 50:
-            index += 1
+        while len(payloads) > 0:
+            touch('/tmp/extract_into_database.lock')
+            
+            EXTRACTOR_TIMES = {}
+            EXTRACTOR_COUNTS = {}
+
+            local_db = query_time
+            remote_db = 0.0
+            local_app = 0.0
+
+            start = timezone.now()
             
             for payload in payloads:
-                # print('PAYLOAD ' + str(payload.added) + ' / ' + str(payload.pk))
+                cpu_start = datetime.datetime.now()
                 
                 items = json.loads(payload.payload)
                 
@@ -58,16 +80,28 @@ class Command(BaseCommand):
                 for item in items:
                     if 'PROBE' in item and 'GUID' in item:
                         probe_name = my_slugify(item['PROBE']).replace('edu_northwestern_cbits_purple_robot_manager_probes_', '')
-                    
+
                         found = False
-                        
-                        for app in settings.INSTALLED_APPS:
-                            try:
-                                importlib.import_module(app + '.management.commands.extractors.' + probe_name)
-                                
+
+                        if (probe_name in EXTRACTORS) == True:
+                            if EXTRACTORS[probe_name] != None:
                                 found = True
-                            except ImportError:
-                                pass
+                            else:
+                                found = False
+                        else:
+                            EXTRACTORS[probe_name] = None
+                            
+                            for app in settings.INSTALLED_APPS:
+                                try:
+                                    probe = importlib.import_module(app + '.management.commands.extractors.' + probe_name)
+                                    
+                                    print('MANUALLY ADDING ' + probe_name)
+                                    
+                                    EXTRACTORS[probe_name] = probe
+                                
+                                    found = True
+                                except ImportError:
+                                    pass
                                 
                         if found == False:
                             has_all_extractors = False
@@ -81,22 +115,49 @@ class Command(BaseCommand):
                 if has_all_extractors:
                     for item in items:
                         if 'PROBE' in item and 'GUID' in item:
-                            probe = None
-                            
                             probe_name = my_slugify(item['PROBE']).replace('edu_northwestern_cbits_purple_robot_manager_probes_', '')
                             
-                            for app in settings.INSTALLED_APPS:
-                                try:
-                                    if probe == None:
-                                        probe = importlib.import_module(app + '.management.commands.extractors.' + probe_name)
+                            probe = EXTRACTORS[probe_name]
                             
-                                        found = True
-                                except ImportError:
-                                    pass
-                    
-                            if probe != None and probe.exists(settings.PURPLE_ROBOT_FLAT_MIRROR, payload.user_id, item) == False:
-                                # print('PROBE: ' + probe_name)                
-                                probe.insert(settings.PURPLE_ROBOT_FLAT_MIRROR, payload.user_id, item)
+                            write_start = datetime.datetime.now()
+                            local_app += (write_start - cpu_start).total_seconds()
+                            
+                            exists = True 
+                            
+                            if settings.PURPLE_ROBOT_DISABLE_DATA_CHECKS:
+                                exists = False
+                            else:
+                            	exists = probe.exists(settings.PURPLE_ROBOT_FLAT_MIRROR, payload.user_id, item)
+                            
+                            cpu_start = datetime.datetime.now()
+                            remote_db += (cpu_start - write_start).total_seconds()
+                            
+                            if EXTRACTORS[probe_name] != None and exists == False:
+                                write_start = datetime.datetime.now()
+                                local_app += (write_start - cpu_start).total_seconds()
+                                
+                                EXTRACTORS[probe_name].insert(settings.PURPLE_ROBOT_FLAT_MIRROR, payload.user_id, item, check_exists=(settings.PURPLE_ROBOT_DISABLE_DATA_CHECKS == False))
+                                
+                                cpu_start = datetime.datetime.now()
+                                remote_db += (cpu_start - write_start).total_seconds()
+                                
+                                duration = 0.0
+                                
+                                if probe_name in EXTRACTOR_TIMES:
+                                    duration = EXTRACTOR_TIMES[probe_name]
+                                
+                                duration += (cpu_start - write_start).total_seconds()
+                                
+                                EXTRACTOR_TIMES[probe_name] = duration
+
+                                count = 0.0
+                                
+                                if probe_name in EXTRACTOR_COUNTS:
+                                    count = EXTRACTOR_COUNTS[probe_name]
+                                
+                                count += 1
+                                
+                                EXTRACTOR_COUNTS[probe_name] = count
 
                     tags = payload.process_tags
                 
@@ -105,10 +166,16 @@ class Command(BaseCommand):
                             tags = tag
                         else:
                             tags += ' ' + tag
-                        
+                            
                         payload.process_tags = tags
-                    
+
+                        read_start = datetime.datetime.now()
+                        local_app += (read_start - cpu_start).total_seconds()
+                        
                         payload.save()
+                        
+                        cpu_start = datetime.datetime.now()
+                        local_db += (cpu_start - read_start).total_seconds()
                 else:
                     tags = payload.process_tags
                     
@@ -119,12 +186,33 @@ class Command(BaseCommand):
                             tags += ' ' + skip_tag
                         
                         payload.process_tags = tags
+
+                        read_start = datetime.datetime.now()
+                        local_app += (read_start - cpu_start).total_seconds()
                     
                         payload.save()
+                        
+                        cpu_start = datetime.datetime.now()
+                        local_db += (cpu_start - read_start).total_seconds()
                 
                 if len(missing_extractors) > 0:
                     print('MISSING EXTRACTORS: ' + str(missing_extractors))
                 
-            payloads = PurpleRobotPayload.objects.exclude(process_tags__contains=tag).exclude(process_tags__contains=skip_tag).order_by('-added')[:100]
+            end = timezone.now()
+
+            perf_values = {}
+            perf_values['num_mirrored'] = len(payloads)
+            perf_values['query_time'] = query_time
+            perf_values['local_db'] = local_db
+            perf_values['remote_db'] = remote_db
+            perf_values['local_app'] = local_app
+            perf_values['extraction_time'] = (end - start).total_seconds()
+            
+            append_performance_sample('system', 'reading_mirror_performance', end, perf_values)
+            
+            start = timezone.now()
+            payloads = list(PurpleRobotPayload.objects.exclude(process_tags__contains=tag).exclude(process_tags__contains=skip_tag).order_by('-added')[:250])
+            end = timezone.now()
+            query_time = (end - start).total_seconds()
             
         os.remove('/tmp/extract_into_database.lock')

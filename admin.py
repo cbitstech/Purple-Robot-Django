@@ -81,11 +81,25 @@ def unmute_alerts(modeladmin, request, queryset):
 unmute_alerts.description = 'Unmute alerts'
 
 
+def mark_testing(modeladmin, request, queryset):
+    for device in queryset:
+        device.test_device = True
+        device.save()
+
+mark_testing.description = 'Mark as test device'
+
+def unmark_testing(modeladmin, request, queryset):
+    for device in queryset:
+        device.test_device = False
+        device.save()
+
+unmark_testing.description = 'Mark as regular device'
+
 class PurpleRobotDeviceAdmin(admin.ModelAdmin):
-    list_display = ('device_id', 'name', 'configuration', 'config_last_fetched', 'config_last_user_agent', 'hash_key', 'mute_alerts')
-    list_filter = ['device_group', 'configuration', 'mute_alerts']
+    list_display = ('device_id', 'name', 'device_group', 'configuration', 'config_last_fetched', 'config_last_user_agent', 'hash_key', 'mute_alerts', 'test_device',)
+    list_filter = ['device_group', 'test_device', 'configuration', 'mute_alerts']
     
-    actions = [ clear_performance_metadata, mute_alerts, unmute_alerts ]
+    actions = [ clear_performance_metadata, mute_alerts, unmute_alerts, mark_testing, unmark_testing ]
     
 admin.site.register(PurpleRobotDevice, PurpleRobotDeviceAdmin)
 
