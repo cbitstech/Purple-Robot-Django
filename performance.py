@@ -38,7 +38,7 @@ def append_performance_sample(user, item, detail_date=timezone.now(), value=''):
     
     try:
         os.chmod(item_path, 0o666)
-    except:
+    except OSError:
         pass
     
 #    f.write(msgpack.packb(content))
