@@ -51,19 +51,19 @@ def call_table_exists(conn):
     
     return activities_table_exists
 
-def insert(connection_str, user_id, reading):
+def insert(connection_str, user_id, reading, check_exists=True):
 #    print(json.dumps(reading, indent=2))
     
     conn = psycopg2.connect(connection_str)
     cursor = conn.cursor()
     
-    if probe_table_exists(conn) == False:
+    if check_exists and probe_table_exists(conn) == False:
         cursor.execute(CREATE_PROBE_TABLE_SQL)
         cursor.execute(CREATE_PROBE_USER_ID_INDEX)
         cursor.execute(CREATE_PROBE_GUID_INDEX)
         cursor.execute(CREATE_PROBE_UTC_LOGGED_INDEX)
     
-    if call_table_exists(conn) == False:
+    if check_exists and call_table_exists(conn) == False:
         cursor.execute(CREATE_CALL_TABLE_SQL)
         cursor.execute(CREATE_CALL_USER_ID_INDEX)
         cursor.execute(CREATE_CALL_READING_ID_INDEX)
@@ -116,13 +116,13 @@ def insert(connection_str, user_id, reading):
         reading_id = row[0]
         
         for call in reading['PHONE_CALLS']:
-            existing_query = 'SELECT id FROM builtin_communicationlogprobe_call WHERE (user_id = %s AND number_name = %s AND call_timestamp = %s);'
-            values = (user_id, call['NUMBER_NAME'], call['CALL_TIMESTAMP'])
-            
-            call_cursor = conn.cursor()
-            call_cursor.execute(existing_query, values)
-            
-            if call_cursor.rowcount == 0:
+#            existing_query = 'SELECT id FROM builtin_communicationlogprobe_call WHERE (user_id = %s AND number_name = %s AND call_timestamp = %s);'
+#            values = (user_id, call['NUMBER_NAME'], call['CALL_TIMESTAMP'])
+#            
+                call_cursor = conn.cursor()
+#            call_cursor.execute(existing_query, values)
+#            
+#            if call_cursor.rowcount == 0:
                 call_cmd = 'INSERT INTO builtin_communicationlogprobe_call(user_id, ' + \
                                                                           'reading_id, ' + \
                                                                           'utc_logged, ' + \

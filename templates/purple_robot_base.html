@@ -41,13 +41,14 @@
 		<!-- Bootstrap core JavaScript
 		================================================== -->
 		<!-- Placed at the end of the document so the pages load faster -->
+		<script src="{% static 'vendor/moment-with-locales.min.js' %}"></script>
+		<script src="{% static 'vendor/moment-timezone-with-data-2010-2020.js' %}"></script>
 		<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
 		<script src="{% static 'bootstrap3/js/bootstrap.min.js' %}"></script>
 		<!-- <script src="{% static 'bootstrap3/js/ie10-viewport-bug-workaround.js' %}"></script> -->
 		<script src="{% static 'vendor/d3.min.js' %}"></script>
 		<script src="{% static 'vendor/d3.layout.min.js' %}"></script>
 		<script src="{% static 'vendor/rickshaw.min.js' %}"></script>
-		<script src="{% static 'vendor/moment-with-locales.min.js' %}"></script>
 		<script src="{% static 'bootstrap3/bootstrap-table/bootstrap-table-all.min.js' %}"></script>
 		<script src="{% static 'bootstrap3/js/bootstrap-datepicker.min.js' %}"></script>
 		<script src="{% static 'bootstrap3/js/bootstrap-datetimepicker.min.js' %}"></script>
@@ -68,7 +69,11 @@
 				{% pr_device_custom_navbar %}
 			</div>
 		</nav>
-
+		<script>
+			$(function () {
+			  $('[data-toggle="tooltip"]').tooltip()
+			})
+		</script>		
 		<div class="container">
 			{% block 'content' %}
 			{% endblock %}
