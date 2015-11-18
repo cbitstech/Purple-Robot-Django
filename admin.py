@@ -54,7 +54,7 @@ class PurpleRobotExportJobAdmin(admin.ModelAdmin):
 admin.site.register(PurpleRobotExportJob, PurpleRobotExportJobAdmin)
 
 class PurpleRobotDeviceGroupAdmin(admin.ModelAdmin):
-    list_display = ('group_id', 'configuration',)
+    list_display = ('name', 'group_id', 'configuration',)
     
 admin.site.register(PurpleRobotDeviceGroup, PurpleRobotDeviceGroupAdmin)
 
@@ -96,7 +96,7 @@ def unmark_testing(modeladmin, request, queryset):
 unmark_testing.description = 'Mark as regular device'
 
 class PurpleRobotDeviceAdmin(admin.ModelAdmin):
-    list_display = ('device_id', 'name', 'device_group', 'configuration', 'config_last_fetched', 'config_last_user_agent', 'hash_key', 'mute_alerts', 'test_device',)
+    list_display = ('device_id', 'name', 'device_group', 'configuration', 'config_last_fetched', 'config_last_user_agent', 'hash_key', 'mute_alerts', 'test_device', 'earliest_reading_date', 'latest_reading_date',)
     list_filter = ['device_group', 'test_device', 'configuration', 'mute_alerts']
     
     actions = [ clear_performance_metadata, mute_alerts, unmute_alerts, mark_testing, unmark_testing ]
