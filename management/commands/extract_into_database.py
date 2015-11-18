@@ -95,8 +95,6 @@ class Command(BaseCommand):
                                 try:
                                     probe = importlib.import_module(app + '.management.commands.extractors.' + probe_name)
                                     
-                                    print('MANUALLY ADDING ' + probe_name)
-                                    
                                     EXTRACTORS[probe_name] = probe
                                 
                                     found = True

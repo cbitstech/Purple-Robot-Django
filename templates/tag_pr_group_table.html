@@ -56,7 +56,11 @@
     <tbody>
         <!-- % for device in group.devices.all % -->
         {% for device in device_group_devices %}
-            <tr class="{{ device.status }}">
+			{% if device.mute_alerts %}
+	            <tr class="muted">
+	        {% else %}
+	            <tr class="{{ device.status }}">
+	        {% endif %}
                 <td>
                 	<a href="{% url 'pr_device' device.device_id %}">{{ device.name }}</a>
                 	{% if device.mute_alerts %}

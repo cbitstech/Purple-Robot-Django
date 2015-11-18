@@ -78,4 +78,20 @@ def fetch_performance_samples(user, item, start=None, end=None):
             
     return samples
 
+def fetch_performance_users():
+    items_path = settings.MEDIA_ROOT + '/purple_robot_analytics/'
+    
+    users = {}
+    
+    for item in os.listdir(items_path):
+        if item != 'system':
+            dates = os.listdir(items_path + '/' + item)
+            
+            last = sorted(dates, reverse=True)[0]
+            
+            toks = last.split('-')
+            
+            users[item] = datetime.date(int(toks[0]), int(toks[1]), int(toks[2]))
+    
+    return users
     

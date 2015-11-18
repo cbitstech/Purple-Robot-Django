@@ -55,6 +55,15 @@
 				white-space:pre;
 				max-width:none;
 			}
+			
+			tr.muted {
+				background-color: #EEEEEE;
+			}
+
+			tr.muted .text-danger {
+				color: #515151;
+			}
+
 		</style>		
 	</head>
 	<body>
@@ -74,6 +83,9 @@
 						{% if user.is_authenticated %}
 							<li id="header_export">
 								<a href="{% url 'pr_home' %}" data-toggle="tooltip" data-placement="bottom" title="Home"><span class="glyphicon glyphicon-home" aria-hidden="true"></span></a>
+							</li>
+							<li id="header_export">
+								<a href="{% url 'pr_users' %}" data-toggle="tooltip" data-placement="bottom" title="All Users"><span class="glyphicon glyphicon-user" aria-hidden="true"></span></a>
 							</li>
 						{% endif %}
 						<li id="header_stats">

@@ -92,6 +92,7 @@ class PurpleRobotDevice(models.Model):
     hash_key = models.CharField(max_length=128, null=True, blank=True)
     
     first_reading_timestamp = models.BigIntegerField(default=0)
+    last_reading_timestamp = models.BigIntegerField(default=0)
     
     mute_alerts = models.BooleanField(default=False)
     test_device = models.BooleanField(default=False)
@@ -135,6 +136,29 @@ class PurpleRobotDevice(models.Model):
             self.save()
             
         return None
+
+    def latest_reading_date(self):
+        self.init_hash()
+
+        if self.last_reading_timestamp != 0:
+            if self.last_reading_timestamp > 0:
+                return datetime.datetime.utcfromtimestamp(self.last_reading_timestamp).replace(tzinfo=pytz.utc)
+            else:
+                return None
+        
+        first = PurpleRobotReading.objects.filter(user_id=self.hash_key).order_by('-logged').first()
+        
+        if first != None:
+            self.last_reading_timestamp = int(time.mktime(first.logged.timetuple()))
+            self.save()
+            
+            return first.logged
+        else:
+            self.last_reading_timestamp = -1
+            self.save()
+            
+        return None
+    
         
     def fetch_reading_count(self, probe):
         perf_data = json.loads(self.performance_metadata)
@@ -274,6 +298,7 @@ class PurpleRobotDevice(models.Model):
         
         if reading != None:
             self.set_earliest_reading(reading)
+            self.set_latest_reading(reading)
         
         return reading
 
@@ -300,6 +325,31 @@ class PurpleRobotDevice(models.Model):
                     
             self.performance_metadata = json.dumps(perf_data, indent=2)
             self.save()
+
+# Redundant? (set_most_recent_reading)
+#    def set_latest_reading(self, new_reading):
+#        perf_data = json.loads(self.performance_metadata)
+#
+#        old_reading = None
+#        updated = False
+#        
+#        if ('latest_readings' in perf_data) == False:
+#            perf_data['latest_readings'] = {}
+#        elif (new_reading.probe in perf_data['latest_readings']):
+#            old_reading = PurpleRobotReading.objects.filter(pk=perf_data['latest_readings'][new_reading.probe]).first()
+#
+#        if old_reading == None or new_reading.logged > old_reading.logged:
+#            perf_data['latest_readings'][new_reading.probe] = new_reading.pk
+#            updated = True
+#            
+#        if updated:
+#            if new_reading.probe in PROBE_CACHE_MAP:
+#                for key in PROBE_CACHE_MAP[new_reading.probe]:
+#                    if key in perf_data:
+#                        del perf_data[key]
+#                    
+#            self.performance_metadata = json.dumps(perf_data, indent=2)
+#            self.save()
 
 
     def clear_most_recent_reading(self, probe_name, new_pk=None):
@@ -874,6 +924,51 @@ class PurpleRobotDevice(models.Model):
         
         return messages
         
+    def fetch_gap_status(self, probe_name, start=None, end=None):
+        if end == None:
+            end = timezone.now()
+            
+        if start == None:
+            start = end - datetime.timedelta(days=3)
+            
+        samples = fetch_performance_samples(self.hash_key, probe_name, start=start, end=end)
+
+        status = {}
+        
+        status['num_samples'] = len(samples)
+        
+        if len(samples) > 0:
+            readings_start = arrow.get(samples[0]['sample_date']).datetime
+            readings_end = arrow.get(samples[-1]['sample_date']).datetime
+
+            duration = float((readings_end - readings_start).total_seconds())
+        
+            if duration > 0:
+                status['frequency'] = len(samples) / duration
+            else:
+                status['frequency'] = 0.0
+        
+            gaps = []
+        
+            largest_gap = 0.0
+
+            for i in range(0, len(samples) - 1):
+                one = samples[i]
+                two = samples[i + 1]
+            
+                gap = float((arrow.get(two['sample_date']).datetime - arrow.get(one['sample_date']).datetime).total_seconds())
+            
+                gaps.append(gap)
+            
+                if gap > largest_gap:
+                    largest_gap = gap
+            
+#            status['average_gap'] = numpy.mean(gaps)
+            status['largest_gap'] = largest_gap
+#            status['std_dev_gap'] = numpy.std(gaps)
+        
+        return status
+        
 class PurpleRobotDeviceNote(models.Model):
     device = models.ForeignKey(PurpleRobotDevice, related_name='notes')
     note = models.TextField(max_length=1024)
@@ -922,6 +1017,7 @@ class PurpleRobotPayload(models.Model):
                 if device != None:
                     device.set_most_recent_reading(reading)
                     device.set_earliest_reading(reading)
+#                    device.set_latest_reading(reading)
                     
                 if settings.PURPLE_ROBOT_DISABLE_DATA_CHECKS == False:
                     probe_name = my_slugify(item['PROBE']).replace('edu_northwestern_cbits_purple_robot_manager_probes_', '')

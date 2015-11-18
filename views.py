@@ -111,8 +111,8 @@ def ingest_payload(request):
 
             else:
                 result['Error'] = 'Source checksum ' + json_obj['Checksum'] + ' doesn\'t match destination checksum ' + checksum_str + '.'
-        except Exception, e:
-            result['Error'] = str(e)
+        except UnreadablePostError, e:
+           result['Error'] = str(e)
     else:
         result['Error'] = 'GET requests not supported.'
     
@@ -664,3 +664,21 @@ def pr_status(request):
     
     return render_to_response('purple_robot_status.html', c)
 
+@staff_member_required
+@never_cache
+def pr_users(request):
+    c = RequestContext(request)
+    c.update(csrf(request))
+    
+    c['groups'] = PurpleRobotDeviceGroup.objects.all().order_by('group_id')
+    c['unaffiliated'] = PurpleRobotDevice.objects.filter(device_group=None).order_by('device_id')
+    
+    phantoms = fetch_performance_users()
+    
+    for device in PurpleRobotDevice.objects.all():
+        if device.hash_key != None and device.hash_key in phantoms:
+            del phantoms[device.hash_key]
+    
+    c['phantoms'] = phantoms
+    
+    return render_to_response('purple_robot_users.html', c)

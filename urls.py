@@ -4,7 +4,8 @@ from views import ingest_payload_print, log_event, pr_home, pr_by_probe, \
     pr_by_user, test_report, test_details_json, tests_by_user, \
     create_export_job, fetch_export_file, tests_all, ingest_payload, config, \
     pr_device, pr_add_group, pr_add_device, pr_configurations, pr_configuration, \
-    pr_device_probe, pr_add_note, pr_remove_device, pr_move_device, pr_status
+    pr_device_probe, pr_add_note, pr_remove_device, pr_move_device, pr_status, \
+    pr_users
 
 urlpatterns = patterns('',
     url(r'^config$', config, name='pr_config'),
@@ -29,5 +30,6 @@ urlpatterns = patterns('',
     url(r'^export_files/(?P<job_pk>.+)$', fetch_export_file, name='fetch_export_file'),
     url(r'^tests/$', tests_all, name='tests_all'),
     url(r'^add_note.json$', pr_add_note, name='pr_add_note'),
+    url(r'^users$', pr_users, name='pr_users'),
     url(r'^$', ingest_payload, name='ingest_payload'),
 )
