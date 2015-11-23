@@ -36,11 +36,6 @@ def append_performance_sample(user, item, detail_date=timezone.now(), value=''):
     
     pickle.dump(content, open(item_path, 'wb'))
     
-    try:
-        os.chmod(item_path, 0o666)
-    except OSError:
-        pass
-    
 #    f.write(msgpack.packb(content))
 #    f.close()
 
