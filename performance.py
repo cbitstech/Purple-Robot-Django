@@ -9,6 +9,8 @@ from django.conf import settings
 from django.utils import timezone
 
 def append_performance_sample(user, item, detail_date=timezone.now(), value=''):
+    os.umask(000)
+    
     today = datetime.date.today()
     
     folder = settings.MEDIA_ROOT + '/purple_robot_analytics/' + user + '/' + today.isoformat()
@@ -26,7 +28,7 @@ def append_performance_sample(user, item, detail_date=timezone.now(), value=''):
         
         try:
             content = pickle.load(f)
-            content = msgpack.unpackb(f.read())
+#            content = msgpack.unpackb(f.read())
         except:
             pass
         
@@ -35,11 +37,6 @@ def append_performance_sample(user, item, detail_date=timezone.now(), value=''):
     content[detail_date.isoformat()] = value
     
     pickle.dump(content, open(item_path, 'wb'))
-    
-    try:
-        os.chmod(item_path, 0o666)
-    except OSError:
-        pass
     
 #    f.write(msgpack.packb(content))
 #    f.close()

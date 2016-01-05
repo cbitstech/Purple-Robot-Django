@@ -86,30 +86,33 @@ def ingest_payload(request):
         
             if checksum_str == json_obj['Checksum']:
                 result['Status'] = 'success'
+                
+                try:
+                    payload_json = json.loads(payload_str)
             
-                payload_json = json.loads(payload_str)
-            
-                payload = PurpleRobotPayload(payload=json.dumps(payload_json, indent=2, ensure_ascii=False), user_id=json_obj['UserHash'])
-                payload.save()
+                    payload = PurpleRobotPayload(payload=json.dumps(payload_json, indent=2, ensure_ascii=False), user_id=json_obj['UserHash'])
+                    payload.save()
         
-                m = hashlib.md5()
-                m.update(result['Status'] + result['Payload'])
+                    m = hashlib.md5()
+                    m.update(result['Status'] + result['Payload'])
         
-                result['Checksum'] = m.hexdigest()
+                    result['Checksum'] = m.hexdigest()
             
-                if 'media_url' in payload_str:
-                    payload.ingest_readings()
-                    for k, v in request.FILES.iteritems():
-                        reading = PurpleRobotReading.objects.filter(guid=k).first()
+                    if 'media_url' in payload_str:
+                        payload.ingest_readings()
+                        for k, v in request.FILES.iteritems():
+                            reading = PurpleRobotReading.objects.filter(guid=k).first()
                         
-                        if reading != None:
-                            reading.attachment.save(v.name, v)
+                            if reading != None:
+                                reading.attachment.save(v.name, v)
                             
-                            reading.size = len(reading.payload)
-                            reading.size += reading.attachment.size
+                                reading.size = len(reading.payload)
+                                reading.size += reading.attachment.size
                             
-                            reading.save()
-
+                                reading.save()
+                except ValueError:
+                    result['Status'] = 'error'
+                    result['Error'] = 'Unable to parse payload.'
             else:
                 result['Error'] = 'Source checksum ' + json_obj['Checksum'] + ' doesn\'t match destination checksum ' + checksum_str + '.'
         except UnreadablePostError, e:
@@ -254,6 +257,16 @@ def pr_device(request, device_id):
     c['device'] = PurpleRobotDevice.objects.get(device_id=device_id)
 
     c.update(csrf(request))
+    
+    try:
+        c['pr_show_device_id_header'] = settings.PURPLE_ROBOT_SHOW_DEVICE_ID_HEADER
+    except KeyError:
+        c['pr_show_device_id_header'] = True
+
+    try:
+        c['pr_show_notes'] = settings.PURPLE_ROBOT_SHOW_NOTES
+    except KeyError:
+        c['pr_show_notes'] = True
 
     return render_to_response('purple_robot_device.html', c)
 
@@ -269,16 +282,16 @@ def pr_device_probe(request, device_id, probe_name):
     c['test'] = PurpleRobotTest.objects.filter(user_id=c['device'].user_hash, probe=probe_name).first()
     c['last_readings'] = PurpleRobotReading.objects.filter(user_id=c['device'].user_hash, probe=probe_name).order_by('-logged')[:500]
     c['visualization'] = c['device'].visualization_for_probe(probe_name)
-    
-    try:
-        c['pr_show_notes'] = settings.PURPLE_ROBOT_SHOW_NOTES
-    except KeyError:
-        c['pr_show_notes'] = True
 
     try:
         c['pr_show_device_id_header'] = settings.PURPLE_ROBOT_SHOW_DEVICE_ID_HEADER
     except KeyError:
         c['pr_show_device_id_header'] = True
+
+    try:
+        c['pr_show_notes'] = settings.PURPLE_ROBOT_SHOW_NOTES
+    except KeyError:
+        c['pr_show_notes'] = True
     
     return render_to_response('purple_robot_device_probe.html', c)
 

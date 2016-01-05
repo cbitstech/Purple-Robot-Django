@@ -159,7 +159,8 @@ def insert(connection_str, user_id, reading, check_exists=True):
                             reading_cursor.execute(reading_cmd, values)
                 except ValueError:
                     pass
-
+                except TypeError:
+                    pass
     conn.commit()
         
     cursor.close()

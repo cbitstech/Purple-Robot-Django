@@ -1093,7 +1093,10 @@ class PurpleRobotEvent(models.Model):
         if self.event == 'pr_script_log_message':
             return payload['message']
         elif self.event == 'set_user_id':
-            return SafeString(payload['old_id'] + ' &rarr; ' + payload['new_id'])
+            if 'new_id' in payload:
+                return SafeString(payload['old_id'] + ' &rarr; ' + payload['new_id'])
+            else:
+                return SafeString(payload['old_id'] + ' &rarr; ?')
         elif self.event == 'java_exception':
             return payload['stacktrace'].split('\n')[0]
         elif self.event == 'broadcast_message':

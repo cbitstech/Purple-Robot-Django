@@ -43,7 +43,7 @@ class CustomNavbarNode(template.Node):
         except AttributeError:
             pass
         
-        return render_to_string('tag_pr_device_custom_navbar_default.html')
+        return render_to_string('tag_pr_device_custom_navbar_default.html', context)
 
 
 @register.tag(name="pr_home_custom_console")

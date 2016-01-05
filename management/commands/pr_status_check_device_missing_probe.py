@@ -93,6 +93,8 @@ class Command(BaseCommand):
             else:
                 config_probes = enabled_probes(loads(config.contents, true='#t', false='#f'))
                 
+                touch('/tmp/expected_probe_missing_check.lock')
+                
                 missing_probes = []
                 
                 for probe in config_probes:
@@ -123,5 +125,5 @@ class Command(BaseCommand):
                         missing_probes_str = missing_probes_str + ', and ' + str(len(missing_probes) - 4) + ' more'
                     
                     log_alert(message='Missing data from ' + str(len(missing_probes)) + ' probe(s). Absent probes: ' + missing_probes_str, severity=2, tags=TAG, user_id=device.hash_key)
-
+        
         os.remove('/tmp/expected_probe_missing_check.lock')
