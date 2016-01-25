@@ -1,5 +1,6 @@
+# pylint: disable=line-too-long
+
 import datetime
-import json
 import psycopg2
 import pytz
 
@@ -25,34 +26,34 @@ def exists(connection_str, user_id, reading):
 
     cursor.execute('SELECT id FROM builtin_bluetoothdevicesprobe WHERE (user_id = %s AND guid = %s);', (user_id, reading['GUID']))
 
-    exists = (cursor.rowcount > 0)
+    row_exists = (cursor.rowcount > 0)
 
     cursor.close()
     conn.close()
 
-    return exists
+    return row_exists
 
 
 def probe_table_exists(conn):
     cursor = conn.cursor()
     cursor.execute('SELECT table_name FROM information_schema.tables WHERE (table_schema = \'public\' AND table_name = \'builtin_bluetoothdevicesprobe\')')
 
-    probe_table_exists = (cursor.rowcount > 0)
+    table_exists = (cursor.rowcount > 0)
 
     cursor.close()
 
-    return probe_table_exists
+    return table_exists
 
 
 def device_table_exists(conn):
     cursor = conn.cursor()
     cursor.execute('SELECT table_name FROM information_schema.tables WHERE (table_schema = \'public\' AND table_name = \'builtin_bluetoothdevicesprobe_device\')')
 
-    activities_table_exists = (cursor.rowcount > 0)
+    table_exists = (cursor.rowcount > 0)
 
     cursor.close()
 
-    return activities_table_exists
+    return table_exists
 
 
 def insert(connection_str, user_id, reading, check_exists=True):

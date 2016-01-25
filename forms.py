@@ -1,20 +1,22 @@
+# pylint: disable=line-too-long, no-member
+
 from django import forms
 
-from models import PurpleRobotReading
+from purple_robot_app.models import PurpleRobotReading
+
 
 class ExportJobForm(forms.Form):
-    start_date = forms.DateField()  
+    start_date = forms.DateField()
     end_date = forms.DateField()
     destination = forms.EmailField()
-    
+
     def __init__(self, *args, **kwargs):
         super(ExportJobForm, self).__init__(*args, **kwargs)
-        
+
         probes = []
-        
+
         for probe in PurpleRobotReading.objects.order_by('probe').values_list('probe', flat=True).distinct():
             tokens = probe.split('.')
-            
             probes.append((probe, tokens[-1]))
 
         self.fields['probes'] = forms.MultipleChoiceField(choices=probes, widget=forms.CheckboxSelectMultiple())
