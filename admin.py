@@ -2,7 +2,7 @@
 
 from django.contrib import admin
 
-from purple_robot_app.models import PurpleRobotConfiguration, PurpleRobotPayload, \
+from .models import PurpleRobotConfiguration, PurpleRobotPayload, \
                                     PurpleRobotEvent, PurpleRobotReading, \
                                     PurpleRobotReport, PurpleRobotTest, \
                                     PurpleRobotExportJob, PurpleRobotDeviceGroup, \

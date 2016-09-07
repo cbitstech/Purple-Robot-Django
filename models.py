@@ -22,7 +22,7 @@ from django.utils import timezone
 from django.utils.safestring import SafeString
 from django.utils.text import slugify
 
-from purple_robot_app.performance import fetch_performance_samples
+from .performance import fetch_performance_samples
 
 PROBE_USER_TIME_CACHE = {}
 
