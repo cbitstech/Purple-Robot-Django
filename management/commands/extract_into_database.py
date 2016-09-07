@@ -10,8 +10,8 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 from django.utils.text import slugify
 
-from purple_robot_app.models import PurpleRobotPayload
-from purple_robot_app.performance import append_performance_sample
+from ...models import PurpleRobotPayload
+from ...performance import append_performance_sample
 
 EXTRACTORS = {}
 
@@ -126,8 +126,15 @@ class Command(BaseCommand):
                             local_app += (write_start - cpu_start).total_seconds()
 
                             exists = True
+                            
+                            disable_checks = False
+                            
+                            try:
+                                disable_checks = settings.PURPLE_ROBOT_DISABLE_DATA_CHECKS
+                            except:
+                                pass
 
-                            if settings.PURPLE_ROBOT_DISABLE_DATA_CHECKS:
+                            if disable_checks:
                                 exists = False
                             else:
                                 exists = probe.exists(settings.PURPLE_ROBOT_FLAT_MIRROR, payload.user_id, item)
@@ -139,7 +146,7 @@ class Command(BaseCommand):
                                 write_start = datetime.datetime.now()
                                 local_app += (write_start - cpu_start).total_seconds()
 
-                                EXTRACTORS[probe_name].insert(settings.PURPLE_ROBOT_FLAT_MIRROR, payload.user_id, item, check_exists=(settings.PURPLE_ROBOT_DISABLE_DATA_CHECKS is False))
+                                EXTRACTORS[probe_name].insert(settings.PURPLE_ROBOT_FLAT_MIRROR, payload.user_id, item, check_exists=(disable_checks is False))
 
                                 cpu_start = datetime.datetime.now()
                                 remote_db += (cpu_start - write_start).total_seconds()

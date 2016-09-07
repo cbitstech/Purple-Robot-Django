@@ -3,8 +3,8 @@
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
-from purple_robot_app.models import PurpleRobotDevice, PurpleRobotPayload
-from purple_robot_app.management.commands.pr_check_status import log_alert, cancel_alert
+from ...models import PurpleRobotDevice, PurpleRobotPayload
+from ...management.commands.pr_check_status import log_alert, cancel_alert
 
 
 class Command(BaseCommand):

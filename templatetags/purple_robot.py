@@ -9,7 +9,7 @@ from django.template.defaultfilters import stringfilter
 from django.template.loader import render_to_string
 from django.utils import timezone
 
-from purple_robot_app.models import PurpleRobotDeviceGroup, PurpleRobotAlert, PurpleRobotDevice
+from ..models import PurpleRobotDeviceGroup, PurpleRobotAlert, PurpleRobotDevice
 
 register = template.Library()
 

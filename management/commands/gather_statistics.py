@@ -9,8 +9,8 @@ from django.core.management.base import BaseCommand
 from django.conf import settings
 from django.utils import timezone
 
-from purple_robot_app.models import PurpleRobotPayload
-from purple_robot_app.performance import append_performance_sample
+from ...models import PurpleRobotPayload
+from ...performance import append_performance_sample
 
 
 def touch(fname, mode=0o666):

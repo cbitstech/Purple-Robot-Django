@@ -4,7 +4,7 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 from django.utils.text import slugify
 
-from purple_robot_app.models import PurpleRobotTest, PurpleRobotDevice
+from ...models import PurpleRobotTest, PurpleRobotDevice
 
 REPORT_DAYS = 1
 

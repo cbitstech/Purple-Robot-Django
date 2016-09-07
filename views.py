@@ -19,13 +19,13 @@ from django.utils import timezone
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_exempt
 
-from purple_robot_app.forms import ExportJobForm
-from purple_robot_app.models import PurpleRobotPayload, PurpleRobotTest, PurpleRobotEvent, \
-                                    PurpleRobotReport, PurpleRobotExportJob, PurpleRobotReading, \
-                                    PurpleRobotConfiguration, PurpleRobotDevice, PurpleRobotDeviceGroup, \
-                                    PurpleRobotDeviceNote
+from .forms import ExportJobForm
+from .models import PurpleRobotPayload, PurpleRobotTest, PurpleRobotEvent, \
+                    PurpleRobotReport, PurpleRobotExportJob, PurpleRobotReading, \
+                    PurpleRobotConfiguration, PurpleRobotDevice, PurpleRobotDeviceGroup, \
+                    PurpleRobotDeviceNote
 
-from purple_robot_app.performance import fetch_performance_samples, fetch_performance_users
+from .performance import fetch_performance_samples, fetch_performance_users
 
 
 @never_cache
@@ -262,12 +262,12 @@ def pr_device(request, device_id):
 
     try:
         context['pr_show_device_id_header'] = settings.PURPLE_ROBOT_SHOW_DEVICE_ID_HEADER
-    except KeyError:
+    except AttributeError:
         context['pr_show_device_id_header'] = True
 
     try:
         context['pr_show_notes'] = settings.PURPLE_ROBOT_SHOW_NOTES
-    except KeyError:
+    except AttributeError:
         context['pr_show_notes'] = True
 
     return render_to_response('purple_robot_device.html', context)
@@ -288,12 +288,12 @@ def pr_device_probe(request, device_id, probe_name):
 
     try:
         context['pr_show_device_id_header'] = settings.PURPLE_ROBOT_SHOW_DEVICE_ID_HEADER
-    except KeyError:
+    except AttributeError:
         context['pr_show_device_id_header'] = True
 
     try:
         context['pr_show_notes'] = settings.PURPLE_ROBOT_SHOW_NOTES
-    except KeyError:
+    except AttributeError:
         context['pr_show_notes'] = True
 
     return render_to_response('purple_robot_device_probe.html', context)

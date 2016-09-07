@@ -7,8 +7,8 @@ from collections import namedtuple
 from django.core.management.base import BaseCommand
 from django.test.client import RequestFactory
 
-from purple_robot_app.models import PurpleRobotDevice
-from purple_robot_app.views import pr_device
+from ...models import PurpleRobotDevice
+from ...views import pr_device
 
 
 class Command(BaseCommand):

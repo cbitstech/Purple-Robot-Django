@@ -11,7 +11,7 @@ from requests.exceptions import ConnectionError, ReadTimeout
 from django.conf import settings
 from django.core.management.base import BaseCommand
 
-from purple_robot_app.models import PurpleRobotPayload, PurpleRobotReading
+from ...models import PurpleRobotPayload, PurpleRobotReading
 
 PRINT_PROGRESS = False
 

@@ -4,7 +4,7 @@ import hashlib
 
 from django.core.management.base import BaseCommand
 
-from purple_robot_app.models import PurpleRobotReading
+from ...models import PurpleRobotReading
 
 
 class Command(BaseCommand):

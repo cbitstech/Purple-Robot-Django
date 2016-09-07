@@ -1,12 +1,11 @@
 # pylint: disable=line-too-long, no-member
 
 import datetime
-import requests
 import os
 
 from django.core.management.base import BaseCommand
 
-from purple_robot_app.models import PurpleRobotPayload
+from ...models import PurpleRobotPayload
 
 PRINT_PROGRESS = False
 
@@ -33,8 +32,6 @@ class Command(BaseCommand):
                 return
 
         touch('/tmp/clear_payload_skip_tags.lock')
-
-        requests.packages.urllib3.disable_warnings()
 
         payloads = list(PurpleRobotPayload.objects.filter(process_tags__contains=SKIP_TAG).order_by('-added')[:250])
 

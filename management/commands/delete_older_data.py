@@ -5,7 +5,7 @@ import os
 
 from django.core.management.base import BaseCommand
 
-from purple_robot_app.models import PurpleRobotReading, PurpleRobotPayload, PurpleRobotEvent
+from ...models import PurpleRobotReading, PurpleRobotPayload, PurpleRobotEvent
 
 
 def touch(fname, mode=0o666):

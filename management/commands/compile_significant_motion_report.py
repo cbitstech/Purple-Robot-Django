@@ -9,8 +9,8 @@ from django.core.files import File
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
-from purple_robot.settings import REPORT_DEVICES
-from purple_robot_app.models import PurpleRobotReading, PurpleRobotReport
+from ...settings import REPORT_DEVICES
+from ...models import PurpleRobotReading, PurpleRobotReport
 
 PROBE_NAME = 'edu.northwestern.cbits.purple_robot_manager.probes.builtin.SignificantMotionProbe'
 

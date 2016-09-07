@@ -2,12 +2,12 @@
 
 from django.conf.urls import patterns, url
 
-from purple_robot_app.views import ingest_payload_print, log_event, pr_home, pr_by_probe, \
-                                   pr_by_user, test_report, test_details_json, tests_by_user, \
-                                   create_export_job, fetch_export_file, tests_all, ingest_payload, pr_config, \
-                                   pr_device, pr_add_group, pr_add_device, pr_configurations, pr_configuration, \
-                                   pr_device_probe, pr_add_note, pr_remove_device, pr_move_device, pr_status, \
-                                   pr_users
+from .views import ingest_payload_print, log_event, pr_home, pr_by_probe, \
+                   pr_by_user, test_report, test_details_json, tests_by_user, \
+                   create_export_job, fetch_export_file, tests_all, ingest_payload, pr_config, \
+                   pr_device, pr_add_group, pr_add_device, pr_configurations, pr_configuration, \
+                   pr_device_probe, pr_add_note, pr_remove_device, pr_move_device, pr_status, \
+                   pr_users
 
 urlpatterns = patterns('',
                        url(r'^config$', pr_config, name='pr_config'),

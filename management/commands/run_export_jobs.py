@@ -14,7 +14,7 @@ from django.template.loader import render_to_string
 from django.utils.crypto import get_random_string
 
 from purple_robot.settings import ADMINS, URL_PREFIX
-from purple_robot_app.models import PurpleRobotExportJob, PurpleRobotReading
+from ...models import PurpleRobotExportJob, PurpleRobotReading
 
 
 class Command(BaseCommand):

@@ -4,8 +4,8 @@ import datetime
 
 from django.core.management.base import BaseCommand
 
-from purple_robot_app.models import PurpleRobotDevice, PurpleRobotPayload, PurpleRobotReading
-from purple_robot_app.management.commands.pr_check_status import log_alert, cancel_alert
+from ...models import PurpleRobotDevice, PurpleRobotPayload, PurpleRobotReading
+from .pr_check_status import log_alert, cancel_alert
 
 START_DAYS = 7
 

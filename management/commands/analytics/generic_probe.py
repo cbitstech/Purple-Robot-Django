@@ -4,7 +4,7 @@ import datetime
 
 from django.utils import timezone
 
-from purple_robot_app.performance import append_performance_sample
+from ....performance import append_performance_sample
 
 
 def log_reading(reading):

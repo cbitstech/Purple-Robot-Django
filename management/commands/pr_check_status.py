@@ -3,13 +3,13 @@
 import os
 import datetime
 
-from django.core.management import call_command, find_management_module, find_commands
+from django.core.management import call_command, get_commands, find_commands
 from django.core.management.base import BaseCommand
 from django.conf import settings
 from django.db.models import Q
 from django.utils import timezone
 
-from purple_robot_app.models import PurpleRobotAlert, PurpleRobotDevice
+from ...models import PurpleRobotAlert, PurpleRobotDevice
 
 
 def touch(fname, mode=0o666):
@@ -90,18 +90,13 @@ class Command(BaseCommand):
 
         touch('/tmp/check_status.lock')
 
-        for app in settings.INSTALLED_APPS:
-            if app.startswith('django') == False:
-                try:
-                    command_names = find_commands(find_management_module(app))
+        for command_name, package in get_commands().iteritems():
+            if command_name.startswith('pr_status_check_'):
+                touch('/tmp/check_status.lock')
 
-                    for command_name in command_names:
-                        if command_name.startswith('pr_status_check_'):
-                            call_command(command_name)
-
-                    touch('/tmp/check_status.lock')
-                except ImportError:
-                    pass
+                call_command(command_name)
+                
+        touch('/tmp/check_status.lock')
 
         for device in PurpleRobotDevice.objects.filter(mute_alerts=True):
             for alert in PurpleRobotAlert.objects.filter(user_id=device.hash_key, dismissed=None):
