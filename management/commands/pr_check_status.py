@@ -2,6 +2,7 @@
 
 import os
 import datetime
+import sys
 
 from django.core.management import call_command, get_commands, find_commands
 from django.core.management.base import BaseCommand
@@ -93,6 +94,8 @@ class Command(BaseCommand):
         for command_name, package in get_commands().iteritems():
             if command_name.startswith('pr_status_check_'):
                 touch('/tmp/check_status.lock')
+                
+                sys.stdout.flush()
 
                 call_command(command_name)
                 

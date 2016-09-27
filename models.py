@@ -2,6 +2,7 @@
 
 import arrow
 import calendar
+import collections
 import datetime
 import importlib
 import hashlib
@@ -1313,12 +1314,21 @@ class PurpleRobotTest(models.Model):
                         if timestamp >= report_start and timestamp <= report_end:
                             timestamps.append(timestamp)
                 elif 'SENSOR_TIMESTAMP' in payload:
-                    for timestamp in payload['SENSOR_TIMESTAMP']:
+                    if isinstance(payload['SENSOR_TIMESTAMP'], float):
+                        timestamp = payload['SENSOR_TIMESTAMP']
+
                         if timestamp > 1000000000000:
                             timestamp = timestamp / 1000
 
                         if timestamp >= report_start and timestamp <= report_end:
                             timestamps.append(timestamp)
+                    else:
+                        for timestamp in payload['SENSOR_TIMESTAMP']:
+                            if timestamp > 1000000000000:
+                                timestamp = timestamp / 1000
+
+                            if timestamp >= report_start and timestamp <= report_end:
+                                timestamps.append(timestamp)
                 else:
                     timestamp = payload['TIMESTAMP']
 

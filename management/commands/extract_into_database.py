@@ -50,7 +50,7 @@ class Command(BaseCommand):
         skip_tag = 'extracted_into_database_skip'
 
         start = timezone.now()
-        payloads = list(PurpleRobotPayload.objects.exclude(process_tags__contains=tag).exclude(process_tags__contains=skip_tag).order_by('-added')[:250])
+        payloads = list(PurpleRobotPayload.objects.exclude(process_tags__contains=tag).exclude(process_tags__contains=skip_tag).order_by('-added')[:50])
         end = timezone.now()
 
         query_time = (end - start).total_seconds()
@@ -221,7 +221,7 @@ class Command(BaseCommand):
             append_performance_sample('system', 'reading_mirror_performance', end, perf_values)
 
             start = timezone.now()
-            payloads = list(PurpleRobotPayload.objects.exclude(process_tags__contains=tag).exclude(process_tags__contains=skip_tag).order_by('-added')[:250])
+            payloads = list(PurpleRobotPayload.objects.exclude(process_tags__contains=tag).exclude(process_tags__contains=skip_tag).order_by('-added')[:50])
             end = timezone.now()
             query_time = (end - start).total_seconds()
 

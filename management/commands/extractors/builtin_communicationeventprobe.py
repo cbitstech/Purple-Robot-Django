@@ -4,7 +4,7 @@ import datetime
 import psycopg2
 import pytz
 
-CREATE_PROBE_TABLE_SQL = 'CREATE TABLE builtin_communicationeventprobe(id SERIAL PRIMARY KEY, user_id TEXT, guid TEXT, timestamp BIGINT, utc_logged TIMESTAMP, name TEXT, number TEXT, communication_type TEXT, communication_direction TEXT, comm_timestamp BIGINT, comm_timestamp_ts TIMESTAMP);'
+CREATE_PROBE_TABLE_SQL = 'CREATE TABLE builtin_communicationeventprobe(id SERIAL PRIMARY KEY, user_id TEXT, guid TEXT, timestamp BIGINT, utc_logged TIMESTAMP, name TEXT, number TEXT, communication_type TEXT, communication_direction TEXT, comm_timestamp BIGINT, comm_timestamp_ts TIMESTAMP, duration DOUBLE PRECISION);'
 CREATE_PROBE_USER_ID_INDEX = 'CREATE INDEX ON builtin_communicationeventprobe(user_id);'
 CREATE_PROBE_GUID_INDEX = 'CREATE INDEX ON builtin_communicationeventprobe(guid);'
 CREATE_PROBE_UTC_LOGGED_INDEX = 'CREATE INDEX ON builtin_communicationeventprobe(utc_logged);'
@@ -52,6 +52,11 @@ def insert(connection_str, user_id, reading, check_exists=True):
         cursor.execute(CREATE_PROBE_UTC_LOGGED_INDEX)
 
     conn.commit()
+    
+    duration = None
+    
+    if 'DURATION' in reading:
+        duration = reading['DURATION']
 
     reading_cmd = 'INSERT INTO builtin_communicationeventprobe(user_id, ' + \
                                                    'guid, ' + \
@@ -62,7 +67,8 @@ def insert(connection_str, user_id, reading, check_exists=True):
                                                    'communication_type, ' + \
                                                    'communication_direction, ' + \
                                                    'comm_timestamp, ' + \
-                                                   'comm_timestamp_ts) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id;'
+                                                   'comm_timestamp_ts, ' + \
+                                                   'duration) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id;'
 
     cursor.execute(reading_cmd, (user_id,
                                  reading['GUID'],
@@ -73,7 +79,8 @@ def insert(connection_str, user_id, reading, check_exists=True):
                                  reading['COMMUNICATION_TYPE'],
                                  reading['COMMUNICATION_DIRECTION'],
                                  reading['COMM_TIMESTAMP'],
-                                 datetime.datetime.fromtimestamp((reading['COMM_TIMESTAMP'] / 1000), tz=pytz.utc)))
+                                 datetime.datetime.fromtimestamp((reading['COMM_TIMESTAMP'] / 1000), tz=pytz.utc),
+                                 duration))
 
     conn.commit()
 

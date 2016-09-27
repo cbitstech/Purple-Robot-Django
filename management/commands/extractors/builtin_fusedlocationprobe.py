@@ -4,7 +4,7 @@ import datetime
 import psycopg2
 import pytz
 
-CREATE_PROBE_TABLE_SQL = 'CREATE TABLE builtin_fusedlocationprobe(id SERIAL PRIMARY KEY, user_id TEXT, guid TEXT, timestamp BIGINT, utc_logged TIMESTAMP, latitude DOUBLE PRECISION, longitude DOUBLE PRECISION, altitude DOUBLE PRECISION, accuracy DOUBLE PRECISION, provider TEXT);'
+CREATE_PROBE_TABLE_SQL = 'CREATE TABLE builtin_fusedlocationprobe(id SERIAL PRIMARY KEY, user_id TEXT, guid TEXT, timestamp BIGINT, utc_logged TIMESTAMP, latitude DOUBLE PRECISION, longitude DOUBLE PRECISION, altitude DOUBLE PRECISION, accuracy DOUBLE PRECISION, provider TEXT, bearing DOUBLE PRECISION, speed DOUBLE PRECISION);'
 CREATE_PROBE_USER_ID_INDEX = 'CREATE INDEX ON builtin_fusedlocationprobe(user_id);'
 CREATE_PROBE_GUID_INDEX = 'CREATE INDEX ON builtin_fusedlocationprobe(guid);'
 CREATE_PROBE_UTC_LOGGED_INDEX = 'CREATE INDEX ON builtin_fusedlocationprobe(utc_logged);'
@@ -94,6 +94,16 @@ def insert(connection_str, user_id, reading, check_exists=True):
 
     values.append(accuracy)
     values.append(provider)
+
+    if 'BEARING' in reading:
+        values.append(reading['BEARING'])
+    else:
+        values.append(None)
+
+    if 'SPEED' in reading:
+        values.append(reading['SPEED'])
+    else:
+        values.append(None)
 
     cursor.execute(reading_cmd, values)
 

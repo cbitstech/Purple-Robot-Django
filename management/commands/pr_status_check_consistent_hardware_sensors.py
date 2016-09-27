@@ -2,6 +2,8 @@
 
 import datetime
 import json
+import sys
+
 
 from django.core.management.base import BaseCommand
 from django.utils import timezone
@@ -26,18 +28,28 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         for device in PurpleRobotDevice.objects.filter(mute_alerts=False):
             for sensor in HARDWARE_SENSORS:
+                sys.stdout.flush()
+                
                 last = device.most_recent_reading(sensor)
 
                 if last is not None:
                     hardwares = set()
 
                     start = timezone.now() - datetime.timedelta(days=3)
+                    
+                    readings = PurpleRobotReading.objects.filter(user_id=device.hash_key, probe=sensor, logged__gte=start)
 
-                    for reading in PurpleRobotReading.objects.filter(user_id=device.hash_key, probe=sensor, logged__gte=start):
-                        payload = json.loads(reading.payload)
+                    count = readings.count()
+                    index = 0
+                    
+                    while index < count:
+                        for reading in readings[index:(index + 100)]:
+                            payload = json.loads(reading.payload)
 
-                        if 'SENSOR' in payload:
-                            hardwares.add(payload['SENSOR']['NAME'])
+                            if 'SENSOR' in payload:
+                                hardwares.add(payload['SENSOR']['NAME'])
+                        
+                        index += 100
 
                     if len(hardwares) < 2:
                         cancel_alert(tags='device_sensor_changed_' + my_slugify(sensor.replace('edu.northwestern.cbits.purple_robot_manager.', '')), user_id=device.hash_key)
