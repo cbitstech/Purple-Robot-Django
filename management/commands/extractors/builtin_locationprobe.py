@@ -4,7 +4,7 @@ import datetime
 import psycopg2
 import pytz
 
-CREATE_PROBE_TABLE_SQL = 'CREATE TABLE builtin_locationprobe(id SERIAL PRIMARY KEY, user_id TEXT, guid TEXT, timestamp BIGINT, utc_logged TIMESTAMP, latitude DOUBLE PRECISION, longitude DOUBLE PRECISION, altitude DOUBLE PRECISION, accuracy DOUBLE PRECISION, provider TEXT, network_available BOOLEAN, gps_available BOOLEAN, cluster TEXT);'
+CREATE_PROBE_TABLE_SQL = 'CREATE TABLE builtin_locationprobe(id SERIAL PRIMARY KEY, user_id TEXT, guid TEXT, timestamp BIGINT, utc_logged TIMESTAMP, latitude DOUBLE PRECISION, longitude DOUBLE PRECISION, altitude DOUBLE PRECISION, accuracy DOUBLE PRECISION, provider TEXT, network_available BOOLEAN, gps_available BOOLEAN, cluster TEXT, bearing DOUBLE PRECISION, speed DOUBLE PRECISION);'
 CREATE_PROBE_USER_ID_INDEX = 'CREATE INDEX ON builtin_locationprobe(user_id);'
 CREATE_PROBE_GUID_INDEX = 'CREATE INDEX ON builtin_locationprobe(guid);'
 CREATE_PROBE_UTC_LOGGED_INDEX = 'CREATE INDEX ON builtin_locationprobe(utc_logged);'
@@ -63,7 +63,9 @@ def insert(connection_str, user_id, reading, check_exists=True):
                                                    'provider, ' + \
                                                    'network_available, ' + \
                                                    'gps_available, ' + \
-                                                   'cluster) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id;'
+                                                   'cluster,  ' + \
+                                                   'bearing,  ' + \
+                                                   'speed) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id;'
 
     values = [user_id, reading['GUID'], reading['TIMESTAMP'], datetime.datetime.fromtimestamp(reading['TIMESTAMP'], tz=pytz.utc), reading['LATITUDE'], reading['LONGITUDE']]
 
@@ -79,6 +81,16 @@ def insert(connection_str, user_id, reading, check_exists=True):
 
     if 'CLUSTER' in reading:
         values.append(reading['CLUSTER'])
+    else:
+        values.append(None)
+
+    if 'BEARING' in reading:
+        values.append(reading['BEARING'])
+    else:
+        values.append(None)
+
+    if 'SPEED' in reading:
+        values.append(reading['SPEED'])
     else:
         values.append(None)
 
