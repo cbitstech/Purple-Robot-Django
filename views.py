@@ -32,7 +32,8 @@ from .performance import fetch_performance_samples, fetch_performance_users
 def pr_config(request):
     config = None
 
-    try:
+#    try:
+    if True:
         device_id = request.GET['user_id']
 
         device = PurpleRobotDevice.objects.get(device_id=device_id)
@@ -50,8 +51,8 @@ def pr_config(request):
             device.config_last_user_agent = 'Unknown'
 
         device.save()
-    except:
-        pass
+#    except KeyError:
+#        pass
 
     if config is None:
         config = get_object_or_404(PurpleRobotConfiguration, slug='default')

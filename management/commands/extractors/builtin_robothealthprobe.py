@@ -14,6 +14,7 @@ CREATE_PROBE_TABLE_SQL = 'CREATE TABLE builtin_robothealthprobe (' + \
     'last_boot BIGINT, ' + \
     'last_halt BIGINT, ' + \
     'active_runtime BIGINT, ' + \
+    'device_runtime BIGINT, ' + \
     'root_total BIGINT, ' + \
     'root_free BIGINT, ' + \
     'external_total BIGINT, ' + \
@@ -24,6 +25,7 @@ CREATE_PROBE_TABLE_SQL = 'CREATE TABLE builtin_robothealthprobe (' + \
     'time_offset_ms BIGINT, ' + \
     'throughput DOUBLE PRECISION, ' + \
     'cpu_usage DOUBLE PRECISION, ' + \
+    'power_save_mode BOOLEAN, ' + \
     'measure_time BIGINT, ' + \
     'app_version_code TEXT, ' + \
     'app_version_name TEXT, ' + \
@@ -140,6 +142,7 @@ def insert(connection_str, user_id, reading, check_exists=True):
                                                        'last_boot, ' + \
                                                        'last_halt, ' + \
                                                        'active_runtime, ' + \
+                                                       'device_runtime, ' + \
                                                        'root_total, ' + \
                                                        'root_free, ' + \
                                                        'external_total, ' + \
@@ -150,11 +153,12 @@ def insert(connection_str, user_id, reading, check_exists=True):
                                                        'time_offset_ms, ' + \
                                                        'throughput, ' +\
                                                        'cpu_usage, ' + \
+                                                       'power_save_mode, ' + \
                                                        'measure_time, ' + \
                                                        'app_version_code, ' + \
                                                        'app_version_name, ' + \
                                                        'json_config, ' + \
-                                                       'scheme_config) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id;'
+                                                       'scheme_config) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id;'
     external_total = None
 
     if 'EXTERNAL_TOTAL'in reading:
@@ -164,6 +168,16 @@ def insert(connection_str, user_id, reading, check_exists=True):
 
     if 'EXTERNAL_FREE'in reading:
         external_free = reading['EXTERNAL_FREE']
+        
+    device_runtime = None
+    
+    if 'DEVICE_RUNTIME'in reading:
+        device_runtime = reading['DEVICE_RUNTIME']
+        
+    power_save = None
+
+    if 'POWER_SAVE_MODE'in reading:
+        power_save = reading['POWER_SAVE_MODE']
 
     data = (user_id,
             reading['GUID'],
@@ -172,6 +186,7 @@ def insert(connection_str, user_id, reading, check_exists=True):
             reading['LAST_BOOT'],
             reading['LAST_HALT'],
             reading['ACTIVE_RUNTIME'],
+            device_runtime,
             reading['ROOT_TOTAL'],
             reading['ROOT_FREE'],
             external_total,
@@ -182,6 +197,7 @@ def insert(connection_str, user_id, reading, check_exists=True):
             reading['TIME_OFFSET_MS'],
             reading['THROUGHPUT'],
             reading['CPU_USAGE'],
+            power_save,
             reading['MEASURE_TIME'],
             str(reading['APP_VERSION_CODE']),
             reading['APP_VERSION_NAME'],

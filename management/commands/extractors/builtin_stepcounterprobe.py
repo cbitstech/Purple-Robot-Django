@@ -57,11 +57,16 @@ def insert(connection_str, user_id, reading, check_exists=True):
                                                    'timestamp, ' + \
                                                    'utc_logged, ' + \
                                                    'step_count) VALUES (%s, %s, %s, %s, %s) RETURNING id;'
-    cursor.execute(reading_cmd, (user_id,
-                                 reading['GUID'],
-                                 reading['TIMESTAMP'],
-                                 datetime.datetime.fromtimestamp(reading['TIMESTAMP'], tz=pytz.utc),
-                                 reading['STEP_COUNT']))
+                                                   
+    try:
+        cursor.execute(reading_cmd, (user_id,
+                                     reading['GUID'],
+                                     reading['TIMESTAMP'],
+                                     datetime.datetime.fromtimestamp(reading['TIMESTAMP'], tz=pytz.utc),
+                                     reading['STEP_COUNT']))
+    except ValueError:
+        pass
+    
     conn.commit()
 
     cursor.close()

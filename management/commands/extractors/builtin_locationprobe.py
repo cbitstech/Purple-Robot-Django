@@ -65,7 +65,7 @@ def insert(connection_str, user_id, reading, check_exists=True):
                                                    'gps_available, ' + \
                                                    'cluster,  ' + \
                                                    'bearing,  ' + \
-                                                   'speed) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id;'
+                                                   'speed) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id;'
 
     values = [user_id, reading['GUID'], reading['TIMESTAMP'], datetime.datetime.fromtimestamp(reading['TIMESTAMP'], tz=pytz.utc), reading['LATITUDE'], reading['LONGITUDE']]
 

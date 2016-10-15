@@ -25,7 +25,7 @@ def touch(fname, mode=0o666):
 
 
 def enabled_probes(contents):
-    probes = []
+    probes = [ ]
 
     if isinstance(contents, Symbol):
         pass
@@ -58,7 +58,7 @@ def enabled_probes(contents):
             for found in found_probes:
                 if (found in probes) is False:
                     probes.append(found)
-
+    
     return probes
 
 
@@ -117,6 +117,11 @@ class Command(BaseCommand):
 
                     if 'RunningSoftwareProbe' in missing_probes:
                         missing_probes.remove('RunningSoftwareProbe')
+                        
+#                print(device.device_id + ': ' + str(missing_probes))
+
+                while 'Label' in missing_probes:
+                    missing_probes.remove('Label')
 
                 if len(missing_probes) == 0:
                     cancel_alert(tags=TAG, user_id=device.hash_key)

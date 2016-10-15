@@ -397,6 +397,9 @@ class PurpleRobotDevice(models.Model):
         upload = self.last_upload()
 
         now = timezone.now()
+        
+        if upload is None:
+            return "warning"
 
         diff = now - upload
 
@@ -1061,6 +1064,14 @@ class PurpleRobotPayload(models.Model):
 
             except KeyError:
                 print 'Missing Key: ' + json.dumps(item, indent=2)
+                print traceback.format_exc()
+
+                if tags is None or len(tags) == 0:
+                    tags = 'ingest_error'
+                elif tags.find('ingest_error') == -1:
+                    tags += ' ingest_error'
+            except ValueError:
+                print 'ValueError: ' + json.dumps(item, indent=2)
                 print traceback.format_exc()
 
                 if tags is None or len(tags) == 0:

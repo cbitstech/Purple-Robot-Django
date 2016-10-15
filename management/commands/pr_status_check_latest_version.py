@@ -49,6 +49,25 @@ class Command(BaseCommand):
                 elif device_version.endswith(str(version)):
                     cancel_alert(tags=TAG, user_id=device.hash_key)
                 else:
-                    log_alert(message='Running an older version on Purple Robot: ' + device_version + '.', severity=1, tags=TAG, user_id=device.hash_key)
+                    online_version = version.split(' ')[-1].split('.')
+                    installed_version = device_version.split(' ')[-1].split('.')
+                    
+#                    print(device.device_id + ':' + str(online_version) + ' vs ' + str(installed_version))
+                    
+                    outdated = False
+                    
+                    if int(online_version[0]) > int(installed_version[0]):
+                        outdated = True
+
+                    if int(online_version[1]) > int(installed_version[1]):
+                        outdated = True
+
+                    if int(online_version[2]) > int(installed_version[2]):
+                        outdated = True
+                        
+                    if outdated:
+                        log_alert(message='Running an older version on Purple Robot: ' + device_version + '.', severity=1, tags=TAG, user_id=device.hash_key)
+                    else:
+                        cancel_alert(tags=TAG, user_id=device.hash_key)
         else:
             print 'Unable to fetch Play Store metadata.'

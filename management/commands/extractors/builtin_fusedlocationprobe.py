@@ -60,7 +60,9 @@ def insert(connection_str, user_id, reading, check_exists=True):
                                                    'longitude, ' + \
                                                    'altitude, ' + \
                                                    'accuracy, ' + \
-                                                   'provider) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id;'
+                                                   'provider, ' + \
+                                                   'bearing, ' + \
+                                                   'speed) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id;'
     latitude = None
     longitude = None
     timestamp = None

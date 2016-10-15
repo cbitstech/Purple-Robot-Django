@@ -45,7 +45,7 @@ class Command(BaseCommand):
             start = timezone.now()
 
             for payload in payloads:
-                payload.ingest_readings()
+				payload.ingest_readings()
 
             end = timezone.now()
 
