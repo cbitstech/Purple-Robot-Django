@@ -28,7 +28,9 @@ class Command(BaseCommand):
                 if 'WIFI_MAC' in payload:
                     if mac is None:
                         mac = payload['WIFI_MAC']
-                    elif mac is not payload['WIFI_MAC']:
+                    elif mac != payload['WIFI_MAC']:
+                        print('O: ' + mac + ' N: ' + payload['WIFI_MAC'])
+                        
                         same_mac = False
 
             if same_mac:

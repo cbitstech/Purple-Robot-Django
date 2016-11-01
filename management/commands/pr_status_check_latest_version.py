@@ -44,7 +44,7 @@ class Command(BaseCommand):
             for device in PurpleRobotDevice.objects.filter(mute_alerts=False):
                 device_version = device.config_last_user_agent
 
-                if device_version is None:
+                if device_version is None or device_version.strip() == '':
                     log_alert(message='Unable to determine installed version.', severity=1, tags=TAG, user_id=device.hash_key)
                 elif device_version.endswith(str(version)):
                     cancel_alert(tags=TAG, user_id=device.hash_key)

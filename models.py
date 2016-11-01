@@ -561,10 +561,9 @@ class PurpleRobotDevice(models.Model):
 
             timestamp = calendar.timegm(reading.logged.timetuple())
 
-            if len(readings) == 0 or readings[-1]['count'] != data['PENDING_COUNT'] or (timestamp - readings[-1]['timestamp']) > (30 * 60):
+            if len(readings) == 0 or (timestamp - readings[-1]['timestamp']) > (5 * 60) or readings[-1]['count'] != data['PENDING_COUNT']:
                 item = {'count': data['PENDING_COUNT'], 'timestamp': timestamp}
-
-            readings.append(item)
+                readings.append(item)
 
         return readings
 
