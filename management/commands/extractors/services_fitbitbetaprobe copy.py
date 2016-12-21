@@ -1,5 +1,6 @@
+# pylint: disable=line-too-long
+
 import datetime
-import json
 import psycopg2
 import pytz
 
@@ -38,163 +39,169 @@ CREATE_ELEVATION_USER_ID_INDEX = 'CREATE INDEX ON services_fitbitbetaprobe_eleva
 CREATE_ELEVATION_ID_INDEX = 'CREATE INDEX ON services_fitbitbetaprobe_elevation(reading_id);'
 CREATE_ELEVATION_UTC_LOGGED_INDEX = 'CREATE INDEX ON services_fitbitbetaprobe_elevation(utc_logged);'
 
+
 def exists(connection_str, user_id, reading):
     conn = psycopg2.connect(connection_str)
     cursor = conn.cursor()
 
-    if probe_table_exists(conn) == False or heart_table_exists(conn) == False or distance_table_exists(conn) == False or calories_table_exists(conn) == False or steps_table_exists(conn) == False or floors_table_exists(conn) == False  or elevation_table_exists(conn) == False:
+    if probe_table_exists(conn) is False or heart_table_exists(conn) is False or distance_table_exists(conn) is False or calories_table_exists(conn) is False or steps_table_exists(conn) is False or floors_table_exists(conn) is False or elevation_table_exists(conn) is False:
         conn.close()
         return False
 
     cursor.execute('SELECT id FROM services_fitbitbetaprobe WHERE (user_id = %s AND guid = %s);', (user_id, reading['GUID']))
-    
-    exists = (cursor.rowcount > 0)
-    
+
+    row_exists = (cursor.rowcount > 0)
+
     cursor.close()
     conn.close()
-    
-    return exists
+
+    return row_exists
+
 
 def probe_table_exists(conn):
     cursor = conn.cursor()
     cursor.execute('SELECT table_name FROM information_schema.tables WHERE (table_schema = \'public\' AND table_name = \'services_fitbitbetaprobe\')')
-    
-    exists = (cursor.rowcount > 0)
-            
+
+    table_exists = (cursor.rowcount > 0)
+
     cursor.close()
-    
-    return exists
+
+    return table_exists
+
 
 def heart_table_exists(conn):
     cursor = conn.cursor()
     cursor.execute('SELECT table_name FROM information_schema.tables WHERE (table_schema = \'public\' AND table_name = \'services_fitbitbetaprobe_heart\')')
-    
-    exists = (cursor.rowcount > 0)
-            
+
+    table_exists = (cursor.rowcount > 0)
+
     cursor.close()
-    
-    return exists
+
+    return table_exists
+
 
 def steps_table_exists(conn):
     cursor = conn.cursor()
     cursor.execute('SELECT table_name FROM information_schema.tables WHERE (table_schema = \'public\' AND table_name = \'services_fitbitbetaprobe_steps\')')
-    
-    exists = (cursor.rowcount > 0)
-            
+
+    table_exists = (cursor.rowcount > 0)
+
     cursor.close()
-    
-    return exists
+
+    return table_exists
+
 
 def distance_table_exists(conn):
     cursor = conn.cursor()
     cursor.execute('SELECT table_name FROM information_schema.tables WHERE (table_schema = \'public\' AND table_name = \'services_fitbitbetaprobe_distance\')')
-    
-    exists = (cursor.rowcount > 0)
-            
+
+    table_exists = (cursor.rowcount > 0)
+
     cursor.close()
-    
-    return exists
+
+    return table_exists
+
 
 def calories_table_exists(conn):
     cursor = conn.cursor()
     cursor.execute('SELECT table_name FROM information_schema.tables WHERE (table_schema = \'public\' AND table_name = \'services_fitbitbetaprobe_calories\')')
-    
-    exists = (cursor.rowcount > 0)
-            
+
+    table_exists = (cursor.rowcount > 0)
+
     cursor.close()
-    
-    return exists
+
+    return table_exists
+
 
 def floors_table_exists(conn):
     cursor = conn.cursor()
     cursor.execute('SELECT table_name FROM information_schema.tables WHERE (table_schema = \'public\' AND table_name = \'services_fitbitbetaprobe_floors\')')
-    
-    exists = (cursor.rowcount > 0)
-            
+
+    table_exists = (cursor.rowcount > 0)
+
     cursor.close()
-    
-    return exists
+
+    return table_exists
+
 
 def elevation_table_exists(conn):
     cursor = conn.cursor()
     cursor.execute('SELECT table_name FROM information_schema.tables WHERE (table_schema = \'public\' AND table_name = \'services_fitbitbetaprobe_elevation\')')
-    
-    exists = (cursor.rowcount > 0)
-            
+
+    table_exists = (cursor.rowcount > 0)
+
     cursor.close()
-    
-    return exists
+
+    return table_exists
 
 
-def insert(connection_str, user_id, reading):
-#    print(json.dumps(reading, indent=2))
-    
+def insert(connection_str, user_id, reading, check_exists=True):
     conn = psycopg2.connect(connection_str)
     cursor = conn.cursor()
-    
-    if probe_table_exists(conn) == False:
+
+    if check_exists and probe_table_exists(conn) is False:
         cursor.execute(CREATE_PROBE_TABLE_SQL)
         cursor.execute(CREATE_PROBE_USER_ID_INDEX)
         cursor.execute(CREATE_PROBE_GUID_INDEX)
         cursor.execute(CREATE_PROBE_UTC_LOGGED_INDEX)
-    
-    if heart_table_exists(conn) == False:
+
+    if check_exists and heart_table_exists(conn) is False:
         cursor.execute(CREATE_HEART_TABLE_SQL)
         cursor.execute(CREATE_HEART_USER_ID_INDEX)
         cursor.execute(CREATE_HEART_ID_INDEX)
         cursor.execute(CREATE_HEART_UTC_LOGGED_INDEX)
-    
-    if distance_table_exists(conn) == False:
+
+    if check_exists and distance_table_exists(conn) is False:
         cursor.execute(CREATE_DISTANCE_TABLE_SQL)
         cursor.execute(CREATE_DISTANCE_USER_ID_INDEX)
         cursor.execute(CREATE_DISTANCE_ID_INDEX)
         cursor.execute(CREATE_DISTANCE_UTC_LOGGED_INDEX)
-    
-    if calories_table_exists(conn) == False:
+
+    if check_exists and calories_table_exists(conn) is False:
         cursor.execute(CREATE_CALORIES_TABLE_SQL)
         cursor.execute(CREATE_CALORIES_USER_ID_INDEX)
         cursor.execute(CREATE_CALORIES_ID_INDEX)
         cursor.execute(CREATE_CALORIES_UTC_LOGGED_INDEX)
-    
-    if steps_table_exists(conn) == False:
+
+    if check_exists and steps_table_exists(conn) is False:
         cursor.execute(CREATE_STEPS_TABLE_SQL)
         cursor.execute(CREATE_STEPS_USER_ID_INDEX)
         cursor.execute(CREATE_STEPS_ID_INDEX)
         cursor.execute(CREATE_STEPS_UTC_LOGGED_INDEX)
-    
-    if floors_table_exists(conn) == False:
+
+    if check_exists and floors_table_exists(conn) is False:
         cursor.execute(CREATE_FLOORS_TABLE_SQL)
         cursor.execute(CREATE_FLOORS_USER_ID_INDEX)
         cursor.execute(CREATE_FLOORS_ID_INDEX)
         cursor.execute(CREATE_FLOORS_UTC_LOGGED_INDEX)
-    
-    if elevation_table_exists(conn) == False:
+
+    if check_exists and elevation_table_exists(conn) is False:
         cursor.execute(CREATE_ELEVATION_TABLE_SQL)
         cursor.execute(CREATE_ELEVATION_USER_ID_INDEX)
         cursor.execute(CREATE_ELEVATION_ID_INDEX)
         cursor.execute(CREATE_ELEVATION_UTC_LOGGED_INDEX)
-        
+
     conn.commit()
-    
+
     reading_cmd = 'INSERT INTO services_fitbitbetaprobe(user_id, ' + \
                                                        'guid, ' + \
                                                        'timestamp, ' + \
                                                        'utc_logged) VALUES (%s, %s, %s, %s) RETURNING id;'
-    
-    cursor.execute(reading_cmd, (user_id, \
-                                 reading['GUID'], \
-                                 reading['TIMESTAMP'], \
+
+    cursor.execute(reading_cmd, (user_id,
+                                 reading['GUID'],
+                                 reading['TIMESTAMP'],
                                  datetime.datetime.fromtimestamp(reading['TIMESTAMP'], tz=pytz.utc)))
-    
+
     for row in cursor.fetchall():
         reading_id = row[0]
-        
+
         reading_cursor = conn.cursor()
-        
+
         if 'DISTANCE' in reading:
             for i in range(0, len(reading['DISTANCE'])):
                 value = reading['DISTANCE'][i]
-                ts = reading['DISTANCE_TIMESTAMPS'][i]
+                timestamp = reading['DISTANCE_TIMESTAMPS'][i]
 
                 reading_cmd = 'INSERT INTO services_fitbitbetaprobe_distance(user_id, ' + \
                                                                          'reading_id, ' + \
@@ -202,31 +209,31 @@ def insert(connection_str, user_id, reading):
                                                                          'sensor_timestamp, ' + \
                                                                          'sensor_timestamp_utc, ' + \
                                                                          'distance) VALUES (%s, %s, %s, %s, %s, %s);'
-                                                                     
-                values = [ user_id, reading_id, datetime.datetime.fromtimestamp(reading['TIMESTAMP'], tz=pytz.utc), ts, datetime.datetime.fromtimestamp(ts / 1000, tz=pytz.utc), value ]
-        
+
+                values = [user_id, reading_id, datetime.datetime.fromtimestamp(reading['TIMESTAMP'], tz=pytz.utc), timestamp, datetime.datetime.fromtimestamp(timestamp / 1000, tz=pytz.utc), value]
+
                 reading_cursor.execute(reading_cmd, values)
 
         if 'CALORIES' in reading:
-			for i in range(0, len(reading['CALORIES'])):
-				value = reading['CALORIES'][i]
-				ts = reading['CALORIES_TIMESTAMPS'][i]
+            for i in range(0, len(reading['CALORIES'])):
+                value = reading['CALORIES'][i]
+                timestamp = reading['CALORIES_TIMESTAMPS'][i]
 
-				reading_cmd = 'INSERT INTO services_fitbitbetaprobe_calories(user_id, ' + \
-																		 'reading_id, ' + \
-																		 'utc_logged, ' + \
-																		 'sensor_timestamp, ' + \
-																		 'sensor_timestamp_utc, ' + \
-																		 'calories) VALUES (%s, %s, %s, %s, %s, %s);'
-																	 
-				values = [ user_id, reading_id, datetime.datetime.fromtimestamp(reading['TIMESTAMP'], tz=pytz.utc), ts, datetime.datetime.fromtimestamp(ts / 1000, tz=pytz.utc), value ]
-		
-				reading_cursor.execute(reading_cmd, values)
-            
+                reading_cmd = 'INSERT INTO services_fitbitbetaprobe_calories(user_id, ' + \
+                                                                         'reading_id, ' + \
+                                                                         'utc_logged, ' + \
+                                                                         'sensor_timestamp, ' + \
+                                                                         'sensor_timestamp_utc, ' + \
+                                                                         'calories) VALUES (%s, %s, %s, %s, %s, %s);'
+
+                values = [user_id, reading_id, datetime.datetime.fromtimestamp(reading['TIMESTAMP'], tz=pytz.utc), timestamp, datetime.datetime.fromtimestamp(timestamp / 1000, tz=pytz.utc), value]
+
+                reading_cursor.execute(reading_cmd, values)
+
         if 'STEPS' in reading:
             for i in range(0, len(reading['STEPS'])):
                 value = reading['STEPS'][i]
-                ts = reading['STEP_TIMESTAMPS'][i]
+                timestamp = reading['STEP_TIMESTAMPS'][i]
 
                 reading_cmd = 'INSERT INTO services_fitbitbetaprobe_steps(user_id, ' + \
                                                                          'reading_id, ' + \
@@ -234,15 +241,15 @@ def insert(connection_str, user_id, reading):
                                                                          'sensor_timestamp, ' + \
                                                                          'sensor_timestamp_utc, ' + \
                                                                          'steps) VALUES (%s, %s, %s, %s, %s, %s);'
-                                                                     
-                values = [ user_id, reading_id, datetime.datetime.fromtimestamp(reading['TIMESTAMP'], tz=pytz.utc), ts, datetime.datetime.fromtimestamp(ts / 1000, tz=pytz.utc), value ]
-        
+
+                values = [user_id, reading_id, datetime.datetime.fromtimestamp(reading['TIMESTAMP'], tz=pytz.utc), timestamp, datetime.datetime.fromtimestamp(timestamp / 1000, tz=pytz.utc), value]
+
                 reading_cursor.execute(reading_cmd, values)
-                
+
         if 'FLOORS' in reading:
             for i in range(0, len(reading['FLOORS'])):
                 value = reading['FLOORS'][i]
-                ts = reading['FLOORS_TIMESTAMPS'][i]
+                timestamp = reading['FLOORS_TIMESTAMPS'][i]
 
                 reading_cmd = 'INSERT INTO services_fitbitbetaprobe_floors(user_id, ' + \
                                                                          'reading_id, ' + \
@@ -250,46 +257,46 @@ def insert(connection_str, user_id, reading):
                                                                          'sensor_timestamp, ' + \
                                                                          'sensor_timestamp_utc, ' + \
                                                                          'floors) VALUES (%s, %s, %s, %s, %s, %s);'
-                                                                     
-                values = [ user_id, reading_id, datetime.datetime.fromtimestamp(reading['TIMESTAMP'], tz=pytz.utc), ts, datetime.datetime.fromtimestamp(ts / 1000, tz=pytz.utc), value ]
-        
+
+                values = [user_id, reading_id, datetime.datetime.fromtimestamp(reading['TIMESTAMP'], tz=pytz.utc), timestamp, datetime.datetime.fromtimestamp(timestamp / 1000, tz=pytz.utc), value]
+
                 reading_cursor.execute(reading_cmd, values)
 
         if 'HEART' in reading:
-			for i in range(0, len(reading['HEART'])):
-				value = reading['HEART'][i]
-				ts = reading['HEART_TIMESTAMPS'][i]
+            for i in range(0, len(reading['HEART'])):
+                value = reading['HEART'][i]
+                timestamp = reading['HEART_TIMESTAMPS'][i]
 
-				reading_cmd = 'INSERT INTO services_fitbitbetaprobe_heart(user_id, ' + \
-																		 'reading_id, ' + \
-																		 'utc_logged, ' + \
-																		 'sensor_timestamp, ' + \
-																		 'sensor_timestamp_utc, ' + \
-																		 'avg_heartrate) VALUES (%s, %s, %s, %s, %s, %s);'
-																	 
-				values = [ user_id, reading_id, datetime.datetime.fromtimestamp(reading['TIMESTAMP'], tz=pytz.utc), ts, datetime.datetime.fromtimestamp(ts / 1000, tz=pytz.utc), value ]
-		
-				reading_cursor.execute(reading_cmd, values)
-        
+                reading_cmd = 'INSERT INTO services_fitbitbetaprobe_heart(user_id, ' + \
+                                                                         'reading_id, ' + \
+                                                                         'utc_logged, ' + \
+                                                                         'sensor_timestamp, ' + \
+                                                                         'sensor_timestamp_utc, ' + \
+                                                                         'avg_heartrate) VALUES (%s, %s, %s, %s, %s, %s);'
+
+                values = [user_id, reading_id, datetime.datetime.fromtimestamp(reading['TIMESTAMP'], tz=pytz.utc), timestamp, datetime.datetime.fromtimestamp(timestamp / 1000, tz=pytz.utc), value]
+
+                reading_cursor.execute(reading_cmd, values)
+
         if 'ELEVATION' in reading:
-			for i in range(0, len(reading['ELEVATION'])):
-				value = reading['ELEVATION'][i]
-				ts = reading['ELEVATION_TIMESTAMPS'][i]
+            for i in range(0, len(reading['ELEVATION'])):
+                value = reading['ELEVATION'][i]
+                timestamp = reading['ELEVATION_TIMESTAMPS'][i]
 
-				reading_cmd = 'INSERT INTO services_fitbitbetaprobe_elevation(user_id, ' + \
-																		 'reading_id, ' + \
-																		 'utc_logged, ' + \
-																		 'sensor_timestamp, ' + \
-																		 'sensor_timestamp_utc, ' + \
-																		 'elevation) VALUES (%s, %s, %s, %s, %s, %s);'
-																	 
-				values = [ user_id, reading_id, datetime.datetime.fromtimestamp(reading['TIMESTAMP'], tz=pytz.utc), ts, datetime.datetime.fromtimestamp(ts / 1000, tz=pytz.utc), value ]
-		
-				reading_cursor.execute(reading_cmd, values)
-            
+                reading_cmd = 'INSERT INTO services_fitbitbetaprobe_elevation(user_id, ' + \
+                                                                         'reading_id, ' + \
+                                                                         'utc_logged, ' + \
+                                                                         'sensor_timestamp, ' + \
+                                                                         'sensor_timestamp_utc, ' + \
+                                                                         'elevation) VALUES (%s, %s, %s, %s, %s, %s);'
+
+                values = [user_id, reading_id, datetime.datetime.fromtimestamp(reading['TIMESTAMP'], tz=pytz.utc), timestamp, datetime.datetime.fromtimestamp(timestamp / 1000, tz=pytz.utc), value]
+
+                reading_cursor.execute(reading_cmd, values)
+
         reading_cursor.close()
 
     conn.commit()
-        
+
     cursor.close()
     conn.close()

@@ -18,6 +18,7 @@ from django.conf import settings
 from ...models import PurpleRobotExportJob, PurpleRobotReading
 
 
+
 class Command(BaseCommand):
     def handle(self, *args, **options):
         processing = PurpleRobotExportJob.objects.filter(state='processing')
