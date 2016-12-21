@@ -1,7 +1,9 @@
-import json
-import hashlib
 import datetime
+import hashlib
+import json
+import pytz
 
+from django.conf import settings
 from django.contrib.admin.views.decorators import staff_member_required
 from django.core.context_processors import csrf
 from django.core.urlresolvers import reverse
@@ -153,8 +155,9 @@ def ingest_payload_print(request):
 def log_event(request):
     try:
         payload = json.loads(request.POST['json'])
-    
-        logged = datetime.datetime.fromtimestamp(int(payload['timestamp']))
+
+        tz = pytz.timezone(settings.TIME_ZONE)
+        logged = tz.localize(datetime.datetime.fromtimestamp(int(payload['timestamp'])))
     
         if PurpleRobotEvent.objects.filter(logged=logged, event=payload['event_type']).count() == 0:
             try:

@@ -1,6 +1,7 @@
 import datetime
 import gzip
 import json
+import pytz
 import tempfile
 
 from django.core.files import File
@@ -16,10 +17,12 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         hashes = REPORT_DEVICES # PurpleRobotPayload.objects.order_by().values('user_id').distinct()
         
-        start = datetime.datetime.now() - datetime.timedelta(days=21)
+#        start = datetime.datetime.now() - datetime.timedelta(days=120)
+        start_ts = datetime.datetime(2015, 11, 10, 0, 0, 0, 0, tzinfo=pytz.timezone('US/Central'))
+        end_ts = start_ts + datetime.timedelta(days=1)
         
         for user_hash in hashes:
-            payloads = PurpleRobotReading.objects.filter(user_id=user_hash, probe=PROBE_NAME, logged__gte=start).order_by('logged')
+            payloads = PurpleRobotReading.objects.filter(user_id=user_hash, probe=PROBE_NAME, logged__gte=start_ts, logged__lt=end_ts).order_by('logged')
             
             count = payloads.count()
             if count > 0:

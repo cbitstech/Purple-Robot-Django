@@ -3,8 +3,9 @@ from django import forms
 from models import PurpleRobotReading
 
 class ExportJobForm(forms.Form):
-    start_date = forms.DateField()  
-    end_date = forms.DateField()
+    start_date = forms.DateTimeField()  
+    end_date = forms.DateTimeField()
+
     destination = forms.EmailField()
     
     def __init__(self, *args, **kwargs):

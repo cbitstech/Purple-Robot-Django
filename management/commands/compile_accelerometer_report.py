@@ -1,6 +1,7 @@
 import datetime
 import gzip
 import json
+import pytz
 import sys
 import tempfile
 
@@ -17,10 +18,15 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         hashes = REPORT_DEVICES
         
-        start = datetime.datetime.now() - datetime.timedelta(days=14)
+#        start = datetime.datetime.now() - datetime.timedelta(days=120)
+        start_ts = datetime.datetime(2015, 7, 3, 5, 0, 0, 0, tzinfo=pytz.timezone('US/Central'))
+        end_ts = start_ts + datetime.timedelta(hours=1)
+        
+        # print(start_ts.isoformat())
+        # print(end_ts.isoformat())
 
         for user_hash in hashes:
-            payloads = PurpleRobotReading.objects.filter(user_id=user_hash, probe=PROBE_NAME, logged__gte=start).order_by('logged')
+            payloads = PurpleRobotReading.objects.filter(user_id=user_hash, probe=PROBE_NAME, logged__gte=start_ts, logged__lt=end_ts).order_by('logged')
             
             count = payloads.count()
             

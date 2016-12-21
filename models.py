@@ -840,8 +840,8 @@ class PurpleRobotExportJob(models.Model):
     probes = models.TextField(max_length=8196, null=True, blank=True)
     users = models.TextField(max_length=8196, null=True, blank=True)
 
-    start_date = models.DateField()
-    end_date = models.DateField()
+    start_date = models.DateTimeField()
+    end_date = models.DateTimeField()
 
     export_file = models.FileField(blank=True, upload_to='export_files')
     destination = models.EmailField(null=True, blank=True)
