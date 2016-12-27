@@ -29,6 +29,7 @@ class Command(BaseCommand):
             # hash = hash['user_id']
 
             payloads = PurpleRobotReading.objects.filter(user_id=user_hash, probe=PROBE_NAME, logged__gte=start_ts, logged__lt=end_ts).order_by('logged')
+            
             count = payloads.count()
             if count > 0:
                 temp_file = tempfile.TemporaryFile()
@@ -63,7 +64,7 @@ class Command(BaseCommand):
                             has_sensor = True
 
                             for sensor_time in reading_json['SENSOR_TIMESTAMP']:
-                                sensor_times.append(sensor_times)
+                                sensor_times.append(sensor_time)
 
                         for event_time in reading_json['EVENT_TIMESTAMP']:
                             cpu_times.append(event_time)
@@ -74,18 +75,21 @@ class Command(BaseCommand):
 
                         if has_sensor:
                             for i in range(0, len(sensor_times)):
-                                sensor_ts = float(sensor_times[i])
+                                try:
+                                    sensor_ts = float(sensor_times[i])
 
-                                normalized_ts = sensor_ts / (1000 * 1000 * 1000)
+                                    normalized_ts = sensor_ts / (1000 * 1000 * 1000)
 
-                                if normalized_ts < last_sensor:
-                                    cpu_time = cpu_times[i]
+                                    if normalized_ts < last_sensor:
+                                        cpu_time = cpu_times[i]
 
-                                    base_ts = cpu_time - normalized_ts
+                                        base_ts = cpu_time - normalized_ts
 
-                                normal_times.append(base_ts + normalized_ts)
+                                    normal_times.append(base_ts + normalized_ts)
 
-                                last_sensor = normalized_ts
+                                    last_sensor = normalized_ts
+                                except TypeError:
+                                    print('compile_gyroscope_report[Invalid Value/' + str(payload.pk) + ']: ' + str(sensor_times[i]))
 
                         for x_reading in reading_json['X']:
                             x_readings.append(x_reading)

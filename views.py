@@ -180,8 +180,6 @@ def log_event(request):
                     payload['user_id'] = '-'
             except KeyError:
                 payload['user_id'] = '-'
-        except KeyError:
-            payload['user_id'] = '-'
 
         event = PurpleRobotEvent(payload=json.dumps(payload, indent=2))
         event.logged = logged

@@ -1182,7 +1182,7 @@ def purplerobotreport_delete(sender, instance, **kwargs):
 
 class PurpleRobotTest(models.Model):
     active = models.BooleanField(default=False)
-    slug = models.SlugField(unique=True)
+    slug = models.SlugField(unique=True, max_length=1024)
     probe = models.CharField(max_length=1024, null=True, blank=True)
     user_id = models.CharField(max_length=1024)
     frequency = models.FloatField(default=1.0)
